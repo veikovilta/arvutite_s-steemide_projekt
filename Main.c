@@ -11,6 +11,10 @@ int main(void)
 {
     //väljakutse chrony start
     system("chronyc systemctl start");
+
+    //returnib funktsioon, mis checkib kas on low või high
+    //ootab kuni inimene teeb nupuga valiku 
+    // kuvab kumb on
     if (pin15 = high)
     {
         /* siis on vastuvõtja */
