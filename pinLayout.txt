@@ -9,3 +9,5 @@ synced ledi näitamiseks pin 16 (gpiod 23)
 saatja vastuvõtja valimiseks pin 13 (gpiod 27)
 
  + plaadi jaoks maa ja 5V
+
+välja/sisse lülitamis nupp peab olema 
