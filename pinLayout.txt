@@ -1,0 +1,9 @@
+ekraani pin 3(sda),5(scl), toide 
+
+ledi vilgutamis pin-id on pin 11(gpiod 17) ja selle kõrval olev maa, ülevalt vasakult 5, 6
+
+sisselugemiseks valgusdioodiga - on ainult 1 pin vaja(pin 15)(gpiod 22)
+
+saatja vastuvõtja valimiseks pin 13 (gpiod 27)
+
+ + plaadi jaoks maa ja 5V
