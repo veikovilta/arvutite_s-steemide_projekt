@@ -1,8 +1,7 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <pthread.h>
-#include <unistd.h>
-#include <time.h>
-#include <errno.h>
-#include "stdbool.h"
-#include "LedBlink.h"
+#ifndef MAIN_H
+#define MAIN_H
+
+void* sync_with_chrony(void* arg);
+void* other_jobs(void* arg);
+
+#endif
