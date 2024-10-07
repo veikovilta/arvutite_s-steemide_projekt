@@ -1,39 +1,35 @@
 # Compiler
 CC = gcc
 
-# Compiler flags
-CFLAGS = -Wall -g
+#-Werror kasuta l]plikul asjal
+# Compiler flags for warnings, strict checks, and optimizations
+CFLAGS = -Wall -Wextra -pedantic -Wshadow -Wformat -Wconversion -g -O2
 
 # Target executable name
-TARGET = my_program
+TARGET = projekt
 
 # Source files
-SRCS = main.c led.c
-
-# Header files
-HEADERS = main.h Led.h
+SRCS = Main.c LedBlink.c HelperFunctions.c display.c
 
 # Object files (generated from the source files)
-OBJS = main.o led.o
+OBJS = $(SRCS:.c=.o)
+
+# Library flags (for gpiod)
+LIBS = -lgpiod
 
 # Default target
 all: $(TARGET)
 
 # Rule to link the object files and create the executable
 $(TARGET): $(OBJS)
-	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS)
+	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS) $(LIBS)
 
-# Rule to compile main.c into main.o
-main.o: main.c main.h Led.h
-	$(CC) $(CFLAGS) -c main.c
+# Pattern rule to compile each .c file into corresponding .o file
+%.o: %.c %.h
+	$(CC) $(CFLAGS) -c $<
 
-# Rule to compile led.c into led.o
-led.o: led.c Led.h
-	$(CC) $(CFLAGS) -c led.c
-
-# Clean up all generated files
+# Clean rule to remove object files and the executable
 clean:
 	rm -f $(OBJS) $(TARGET)
 
-# Phony targets are not actual files
 .PHONY: all clean

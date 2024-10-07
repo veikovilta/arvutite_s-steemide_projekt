@@ -6,12 +6,14 @@ struct port {
     struct gpiod_line *line;
 };
 
-struct thread_args_port {
-    int port;
+struct args_port {
+    int portPin;
     char* debugName;
 };
 
-struct port* openPort(int port, char* debugName)
+struct port* openPort(int portPin, char* debugName);
 void preciseSleep(int seconds);
+int readButtonState(struct args_port* args);
+void* readButtonState_thread(void* arg);
 
 #endif

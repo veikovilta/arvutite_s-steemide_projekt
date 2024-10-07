@@ -8,9 +8,9 @@
 #include <gpiod.h>
 #include <time.h>
 
-void* ledBlinking(void* arg) {
-    struct thread_args* args = (struct thread_args*) arg;
-    struct port *openedPort = openPort(args->port, args->debugName);
+void* ledBlinking20(void* arg) {
+    struct args_port* args = (struct args_port*) arg;
+    struct port *openedPort = openPort(args->portPin, args->debugName);
 
     if (openedPort == NULL) {
         return NULL;
@@ -30,6 +30,27 @@ void* ledBlinking(void* arg) {
 
     return NULL;
 }
+
+void* ledBlinkOnce(void* arg) {
+    struct args_port* args = (struct args_port*) arg;
+    struct port *openedPort = openPort(args->portPin, args->debugName);
+
+    if (openedPort == NULL) {
+        return NULL;
+    }
+
+    gpiod_line_set_value(openedPort->line, 1);
+    preciseSleep(1);
+
+	gpiod_line_set_value(openedPort->line, 0);
+
+    gpiod_line_release(openedPort->line);
+    gpiod_chip_close(openedPort->chip);
+    free(openedPort);
+
+    return NULL;
+}
+
 
 /*int main() {
     pthread_t thread;
