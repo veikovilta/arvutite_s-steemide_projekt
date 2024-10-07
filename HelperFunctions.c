@@ -4,8 +4,44 @@
 #include <unistd.h>
 #include <time.h>
 #include <errno.h>
-#include "stdbool.h"
+#include <stdbool.h>
 #include "LedBlink.h"
+
+struct port* openPort(int port, char* debugName) {
+    struct port* newPort = (struct port*) malloc(sizeof(struct port));
+    if (newPort == NULL) {
+        perror("Memory allocation failed");
+        return NULL;
+    }
+
+    // Open GPIO chip
+    newPort->chip = gpiod_chip_open_by_number(port);
+    if (!newPort->chip) {
+        perror("Open GPIO chip failed");
+        free(newPort);
+        return NULL;
+    }
+
+    // Get GPIO line
+    newPort->line = gpiod_chip_get_line(newPort->chip, port);
+    if (!newPort->line) {
+        perror("Get GPIO line failed");
+        gpiod_chip_close(newPort->chip);
+        free(newPort);
+        return NULL;
+    }
+
+    // Request line as output
+    int lineRequestReturn = gpiod_line_request_output(newPort->line, debugName, 0);
+    if (lineRequestReturn < 0) {
+        perror("Request line as output failed");
+        gpiod_chip_close(newPort->chip);
+        free(newPort);
+        return NULL;
+    }
+
+    return newPort;
+}
 
 void preciseSleep(int seconds) {
     struct timespec req, rem;
@@ -20,7 +56,7 @@ void preciseSleep(int seconds) {
     if (ret != 0) {
         if (ret == EINTR) {
             // Interrupted by a signal handler, display remaining time
-            printf("Sleep interrupted. Remaining: %ld seconds\n", rem.tv_sec);
+            printf("Sleep interrupted. Remaining: %lld seconds\n", rem.tv_sec);
         }
         else {
             // Handle other potential errors

@@ -1,7 +1,13 @@
-#include "Main.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <unistd.h>
+#include <time.h>
+#include <errno.h>
+#include "stdbool.h"
+#include "LedBlink.h"
 
-void* sync_with_chrony(void* arg);
-void* other_jobs(void* arg);
+#include "Main.h"
 
 //jagatud muutuja bool
 bool loop = true;
@@ -58,10 +64,6 @@ int main(void)
 
     return 0;
 }
-
-
-
-
 
 void * displayInfo(int pinout)
 {
