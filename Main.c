@@ -25,7 +25,7 @@ int main(void)
     //ootab kuni inimene teeb nupuga valiku 
     // kuvab kumb on
     
-    struct args_port mingiNupp = { .portPin = 4, .debugName = "GPIO Port 4" };
+    struct args_port mingiNupp = { .portPin = 4, .debugName = "GPIO Port 4", .inputOutput = true};
     
     int pin15 = readButtonState(&mingiNupp);
     
@@ -59,7 +59,7 @@ int main(void)
     // Initialize thread arguments
     args.portPin = GPIO_LINE_MAIN_BLINK;                 // Set GPIO port number
     args.debugName = "LEDController";  // Set debug name
-
+	args.inputOutput = false;
     
     // Create a thread for other jobs
     if(pthread_create(&blinkThread, NULL, ledBlinking20, (void*)&args) != 0){

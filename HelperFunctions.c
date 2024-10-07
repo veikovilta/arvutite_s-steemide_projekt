@@ -7,10 +7,10 @@
 #include <stdbool.h>
 #include "LedBlink.h"
 #include "HelperFunctions.h"
-#include <gpiod.h> // Add this line in your HelperFunctions.h and Main.c files if not already present
+#include <gpiod.h>
 
 
-struct port* openPort(int portPin, char* debugName) {
+struct port* openPort(int portPin, char* debugName, bool inputOutput) {
     struct port* newPort = (struct port*) malloc(sizeof(struct port));
     if (newPort == NULL) {
         perror("Memory allocation failed");
@@ -35,13 +35,26 @@ struct port* openPort(int portPin, char* debugName) {
     }
 
     // Request line as output
-    int lineRequestReturn = gpiod_line_request_output(newPort->line, debugName, 0);
-    if (lineRequestReturn < 0) {
-        perror("Request line as output failed");
-        gpiod_chip_close(newPort->chip);
-        free(newPort);
-        return NULL;
-    }
+    if (inputOutput)
+	{
+		int lineRequestReturn = gpiod_line_request_input(newPort->line, debugName);
+		if (lineRequestReturn < 0) {
+			perror("Request line as output failed");
+			gpiod_chip_close(newPort->chip);
+			free(newPort);
+			return NULL;
+		}
+	}
+	else
+	{
+		int lineRequestReturn = gpiod_line_request_output(newPort->line, debugName, 0);
+		if (lineRequestReturn < 0) {
+			perror("Request line as output failed");
+			gpiod_chip_close(newPort->chip);
+			free(newPort);
+			return NULL;
+		}
+	}
 
     return newPort;
 }
@@ -70,13 +83,11 @@ void preciseSleep(int seconds) {
 
 void* readButtonState_thread(void* arg) {
     struct args_port* args = (struct args_port*) arg;
-    struct port *openedPort = openPort(args->portPin, args->debugName);
+    struct port *openedPort = openPort(args->portPin, args->debugName, args->inputOutput);
 
     if (openedPort == NULL) {
         return NULL;
     }
-
-    gpiod_line_request_input(openedPort->line, "button_monitor");
 
     while (1) {
         int value = gpiod_line_get_value(openedPort->line);
@@ -103,14 +114,12 @@ void* readButtonState_thread(void* arg) {
 
 int readButtonState(struct args_port* args) {
     
-    struct port *openedPort = openPort(args->portPin, args->debugName);
+    struct port *openedPort = openPort(args->portPin, args->debugName, args->inputOutput);
 
     if (openedPort == NULL) {
         fprintf(stderr, "Failed to open port.\n");
         return -1;
     }
-
-    gpiod_line_request_input(openedPort->line, "button_read");
 
     int value = gpiod_line_get_value(openedPort->line);
     if (value < 0) {

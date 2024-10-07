@@ -10,7 +10,7 @@
 
 void* ledBlinking20(void* arg) {
     struct args_port* args = (struct args_port*) arg;
-    struct port *openedPort = openPort(args->portPin, args->debugName);
+    struct port *openedPort = openPort(args->portPin, args->debugName, args->inputOutput);
 
     if (openedPort == NULL) {
         return NULL;
@@ -33,7 +33,7 @@ void* ledBlinking20(void* arg) {
 
 void* ledBlinkOnce(void* arg) {
     struct args_port* args = (struct args_port*) arg;
-    struct port *openedPort = openPort(args->portPin, args->debugName);
+    struct port *openedPort = openPort(args->portPin, args->debugName, args->inputOutput);
 
     if (openedPort == NULL) {
         return NULL;
