@@ -136,3 +136,45 @@ int readButtonState(struct args_port* args) {
 
     return value;
 }
+
+int CheckSync
+{
+    char buffer[BUFFER_SIZE];
+    FILE *fp;
+    double systemOffset = 0.0;
+
+    // Run the "chronyc tracking" command and open a pipe to read the output
+    fp = popen("chronyc tracking", "r");
+    if (fp == NULL) {
+        printf("Failed to run chronyc command.\n");
+        return 1;
+    }
+
+    // Parse the output line by line
+    while (fgets(buffer, sizeof(buffer), fp) != NULL) {
+        // Look for the line that contains "System time" to get the offset
+        if (strstr(buffer, "System time") != NULL) {
+            // Extract the offset value (it will be the second value in the line)
+            sscanf(buffer, "System time     : %lf seconds", &systemOffset);
+            break;
+        }
+    }
+
+    // Close the pipe
+    pclose(fp);
+
+    // Output the system offset to the user
+    printf("System time offset from chrony: %.9f seconds\n", systemOffset);
+
+    // Check synchronization status
+    if (systemOffset < 0.0001 && systemOffset > -0.0001) {
+        printf("System clock is well synchronized with chrony.\n");
+        return 0;
+    } 
+    else 
+    {
+        printf("System clock is not well synchronized. Consider checking chrony settings.\n");
+    }
+
+    return 1;
+}

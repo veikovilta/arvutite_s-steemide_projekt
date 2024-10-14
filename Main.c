@@ -13,34 +13,50 @@
 #include "Main.h"
 
 //jagatud muutuja bool
-//~ bool loop = true;
-//~ int currentTime = clock_gettime(CLOCK_REALTIME) 
+//~ atomic bool loop = true;
+//~ atomic int currentTime = clock_gettime(CLOCK_REALTIME) 
 
 int main(void)
 {
     //väljakutse chrony start
-    //~ system("chronyc systemctl start");
+    system("chronyc systemctl start");
+
+
+    // eraldi thread enne käima mis checkib nuppu
+
+    // teeb seda 60 sekundilist checki
+    // 10min vähemalt
+    int minutes = 0;
+    while(1)
+    {
+        preciseSleep(60);
+    
+        if (CheckSync() == 0)
+        {
+            break;
+        }
+        else 
+        {
+            // kirjuta ekraanile et 60 sek ootama veel
+            printf("Syncing for another 1 minute \n%d - minutes waited\n", minutes)
+        }
+        minutes++;
+
+        if (minutes == 10)
+        {
+            // kirjuta ekraanile et ei suutnud syncida
+            printf("NOT SYNCED \n")
+            printf("ERROR BAD RECEPTIOM\n")
+        }
+        
+    }
 
     //returnib funktsioon, mis checkib kas on low või high
     //ootab kuni inimene teeb nupuga valiku 
     // kuvab kumb on
-    
     struct args_port mingiNupp = { .portPin = 4, .debugName = "GPIO Port 4", .inputOutput = true};
-    
     int pin15 = readButtonState(&mingiNupp);
-    
-    if (pin15 == 1)
-    {
-        /* siis on vastuvõtja */
-    }
-    else
-    {
-        /* siis on saatja */
-    }
-    
-    //check if sync
-    //sleep 60 sec vnii chrony salvestamiseks
-    //pärast checki kui hea ka
+
 
     //lediga näitama et on cynced ja ready (mõlemal)
 
@@ -57,7 +73,7 @@ int main(void)
     struct args_port args;
 
     // Initialize thread arguments
-    args.portPin = GPIO_LINE_MAIN_BLINK;                 // Set GPIO port number
+    args.portPin = GPIO_LINE_MAIN_BLINK; // Set GPIO port number
     args.debugName = "LEDController";  // Set debug name
 	args.inputOutput = false;
     
@@ -79,35 +95,6 @@ int main(void)
 
     return 0;
 }
-
-
-//~ void* sync_with_chrony(void* arg) {
-    //~ if (check == )
-    //~ while (loop) {
-        //~ // Sync system time with Chrony
-        //~ current_time = clock_gettime(CLOCK_REALTIME, ....);
-
-        //~ // Wait for 2 seconds before syncing again
-        //~ preciseSleep(2);
-    //~ }
-    //~ return NULL;
-//~ }
-
-//~ void* other_jobs(void* arg) {
-    //~ int i = 0;
-    //~ array[20];
-    //~ for(i = 0; i < 60; i++)
-    //~ {
-        //~ pin1 = high;
-        //~ array[i] = current_time; //debug
-        //~ preciseSleep(1); // teeme oma sleep funktsiooni kasutades current time ülemine asi
-        //~ pin1 = low;
-        //~ preciseSleep(2)
-    //~ }
-    //~ SaveFile(); //debug
-    
-    //~ return NULL;
-//~ }
 
 /* kuidas gpiod chipiga kirjutada #define GPIO_CHIP "/dev/gpiochip0"  // GPIO chip device
 #define GPIO_LINE 17                // GPIO line (GPIO 17)
