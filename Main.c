@@ -24,7 +24,7 @@ int main(void)
 
     // eraldi thread enne käima mis checkib nuppu
 
-    // teeb seda 60 sekundilist checki
+    // teeb 60 sekundilist checki kui hea kell on
     // 10min vähemalt
     int minutes = 0;
     while(1)
@@ -46,7 +46,7 @@ int main(void)
         {
             // kirjuta ekraanile et ei suutnud syncida
             printf("NOT SYNCED \n")
-            printf("ERROR BAD RECEPTIOM\n")
+            printf("ERROR BAD RECEPTION\n")
         }
         
     }
