@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
-#include <gpiod.h>
 #include <time.h>
 
 void* ledBlinking20(void* arg) {
