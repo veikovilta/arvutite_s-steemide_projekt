@@ -5,14 +5,14 @@
 #include "Sensor.h"
 
 
+    struct timespec timestamps[BLINK_COUNT];
+    struct timespec startAndEndStamp[2];
 
 void RegisterBlinks()
 {
     struct args_port* args = (struct args_port*) arg;
     struct port *openedPort = openPort(GPIO_PIN, "GPIO PIN 22", false);
 
-    struct timespec timestamps[BLINK_COUNT];
-    struct timespec startAndEndStamp[2];
     int pin = 0;
 
     // Wait for the first blink

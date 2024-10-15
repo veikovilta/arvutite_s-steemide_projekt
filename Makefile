@@ -9,7 +9,7 @@ CFLAGS = -Wall -Wextra -pedantic -Wshadow -Wformat -Wconversion -g -O2
 TARGET = projekt
 
 # Source files
-SRCS = Main.c LedBlink.c HelperFunctions.c display.c
+SRCS = Main.c Sensor.c HelperFunctions.c display.c
 
 # Object files (generated from the source files)
 OBJS = $(SRCS:.c=.o)
