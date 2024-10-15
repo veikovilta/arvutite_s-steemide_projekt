@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <time.h>
 #include <errno.h>
 #include <gpiod.h> 
@@ -74,22 +75,20 @@ int main(void)
         perror("Failed to create thread");
         return 1
     }
-    //returnib funktsioon, mis checkib kas on low või high
-    //ootab kuni inimene teeb nupuga valiku 
-    // kuvab kumb on
-    struct args_port mingiNupp = { .portPin = 4, .debugName = "GPIO Port 4", .inputOutput = true};
-    int pin15 = readButtonState(&mingiNupp);
-
 
     //lediga näitama et on cynced ja ready (mõlemal)
     ShowReady();
 
     RegisterBlinks();
     
-    // Wait for the threads to complete (they won't in this case)
-    //~ pthread_join(sync_thread, NULL);
+    // Wait for the threads to complete
+    // TODO exit neile funktsioonidele vaja juurde teha
     pthread_join(displayThread, NULL);
     pthread_join(buttonThread, NULL);
+
+    printf("Program finished\n");
+    printf("Closing raspberry\n")
+    system ("sudo shutdown -h now");
 
     return 0;
 }
