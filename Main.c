@@ -4,11 +4,12 @@
 #include <unistd.h>
 #include <time.h>
 #include <errno.h>
-#include <gpiod.h> // Add this line in your HelperFunctions.h and Main.c files if not already present
+#include <gpiod.h> 
 #include "stdbool.h"
 #include "LedBlink.h"
 #include "HelperFunctions.h"
 #include "display.h"
+#include "Sensor.h"
 
 #include "Main.h"
 
@@ -24,16 +25,20 @@ int main(void)
 
     // eraldi thread enne käima mis checkib nuppu
     pthread_t buttonThread, displayThread;
-        struct args_port args;
+    struct args_port args;
 
     // Initialize thread arguments
-    args.portPin = GPIO_LINE_MAIN_BLINK; // Set GPIO port number
-    args.debugName = "LEDController";  // Set debug name
+    args.portPin = GPIO_BUTTON; // Set GPIO port number
+    args.debugName = "InputButton";  // Set debug name
 	args.inputOutput = false;
-        
-    if(pthread_create(&buttonThread, NULL, readButtonState(), (void*)&args) != 0){
+    int result= 0;
+    if(pthread_create(&buttonThread, NULL, readButtonState(), (void*)&args) < 0){
         perror("Failed to create thread");
         return 1;
+    }
+    else
+    {
+        //button pressed?
     }
 
     // teeb 60 sekundilist checki kui hea kell on
@@ -77,9 +82,9 @@ int main(void)
 
 
     //lediga näitama et on cynced ja ready (mõlemal)
+    ShowReady();
 
-    //järgmisene vajutad start ja sellest läheb 
-    // käima järgmise täis minutiga test protsess
+    RegisterBlinks();
     
     // Wait for the threads to complete (they won't in this case)
     //~ pthread_join(sync_thread, NULL);

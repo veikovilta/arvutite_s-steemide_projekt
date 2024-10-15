@@ -137,6 +137,16 @@ int readButtonState(struct args_port* args) {
     return value;
 }
 
+void ShowReady(void)
+{
+    struct args_port* args = (struct args_port*) arg;
+    struct port *openedPort = openPort(GPIO_READY_LED, "GPIO PIN 23", true);
+
+    //display-ime 1 minut
+    gpiod_line_set_value(openedPort->line, 1);
+    preciseSleep(60);
+}
+
 int CheckSync
 {
     char buffer[BUFFER_SIZE];
@@ -173,7 +183,7 @@ int CheckSync
     } 
     else 
     {
-        printf("System clock is not well synchronized. Consider checking chrony settings.\n");
+        printf("System clock is not well synchronized\n");
     }
 
     return 1;

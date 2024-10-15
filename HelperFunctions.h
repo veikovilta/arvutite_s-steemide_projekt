@@ -16,5 +16,7 @@ struct port* openPort(int portPin, char* debugName, bool inputOutput);
 void preciseSleep(int seconds);
 int readButtonState(struct args_port* args);
 void* readButtonState_thread(void* arg);
+int CheckSync;
+void ShowReady();
 
 #endif
