@@ -1,109 +1,223 @@
-#include <wiringPi.h>
-#include <wiringPiI2C.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <string.h>
 #include <unistd.h>
-#include <display.h>
+#include <pigpio.h> // For GPIO and I2C control
 
-void * displayInfo(void* arg)
-{
-    displayToScreen();
+// I2C address for the OLED display
+#define OLED_I2C_ADDR 0x3C
 
-    return NULL;
+// OLED commands (SSD1306)
+#define OLED_COMMAND 0x00
+#define OLED_DATA 0x40
+
+// Screen dimensions
+#define OLED_WIDTH 128
+#define OLED_HEIGHT 64
+
+const unsigned char font5x7[][5] = {
+    {0x00, 0x00, 0x00, 0x00, 0x00}, // (space)
+    {0x00, 0x00, 0x5F, 0x00, 0x00}, // !
+    {0x00, 0x07, 0x00, 0x07, 0x00}, // "
+    {0x14, 0x7F, 0x14, 0x7F, 0x14}, // #
+    {0x24, 0x2A, 0x7F, 0x2A, 0x12}, // $
+    {0x23, 0x13, 0x08, 0x64, 0x62}, // %
+    {0x36, 0x49, 0x55, 0x22, 0x50}, // &
+    {0x00, 0x05, 0x03, 0x00, 0x00}, // '
+    {0x00, 0x1C, 0x22, 0x41, 0x00}, // (
+    {0x00, 0x41, 0x22, 0x1C, 0x00}, // )
+    {0x14, 0x08, 0x3E, 0x08, 0x14}, // *
+    {0x08, 0x08, 0x3E, 0x08, 0x08}, // +
+    {0x00, 0x50, 0x30, 0x00, 0x00}, // ,
+    {0x08, 0x08, 0x08, 0x08, 0x08}, // -
+    {0x00, 0x60, 0x60, 0x00, 0x00}, // .
+    {0x20, 0x10, 0x08, 0x04, 0x02}, // /
+    {0x3E, 0x51, 0x49, 0x45, 0x3E}, // 0
+    {0x00, 0x42, 0x7F, 0x40, 0x00}, // 1
+    {0x42, 0x61, 0x51, 0x49, 0x46}, // 2
+    {0x21, 0x41, 0x45, 0x4B, 0x31}, // 3
+    {0x18, 0x14, 0x12, 0x7F, 0x10}, // 4
+    {0x27, 0x45, 0x45, 0x45, 0x39}, // 5
+    {0x3C, 0x4A, 0x49, 0x49, 0x30}, // 6
+    {0x01, 0x71, 0x09, 0x05, 0x03}, // 7
+    {0x36, 0x49, 0x49, 0x49, 0x36}, // 8
+    {0x06, 0x49, 0x49, 0x29, 0x1E}, // 9
+    {0x00, 0x36, 0x36, 0x00, 0x00}, // :
+    {0x00, 0x56, 0x36, 0x00, 0x00}, // ;
+    {0x08, 0x14, 0x22, 0x41, 0x00}, // <
+    {0x14, 0x14, 0x14, 0x14, 0x14}, // =
+    {0x00, 0x41, 0x22, 0x14, 0x08}, // >
+    {0x02, 0x01, 0x51, 0x09, 0x06}, // ?
+    {0x32, 0x49, 0x79, 0x41, 0x3E}, // @
+    {0x7E, 0x11, 0x11, 0x11, 0x7E}, // A
+    {0x7F, 0x49, 0x49, 0x49, 0x36}, // B
+    {0x3E, 0x41, 0x41, 0x41, 0x22}, // C
+    {0x7F, 0x41, 0x41, 0x41, 0x3E}, // D
+    {0x7F, 0x49, 0x49, 0x49, 0x41}, // E
+    {0x7F, 0x09, 0x09, 0x09, 0x01}, // F
+    {0x3E, 0x41, 0x49, 0x49, 0x7A}, // G
+    {0x7F, 0x08, 0x08, 0x08, 0x7F}, // H
+    {0x00, 0x41, 0x7F, 0x41, 0x00}, // I
+    {0x20, 0x40, 0x41, 0x3F, 0x01}, // J
+    {0x7F, 0x08, 0x14, 0x22, 0x41}, // K
+    {0x7F, 0x40, 0x40, 0x40, 0x40}, // L
+    {0x7F, 0x02, 0x04, 0x02, 0x7F}, // M
+    {0x7F, 0x04, 0x08, 0x10, 0x7F}, // N
+    {0x3E, 0x41, 0x41, 0x41, 0x3E}, // O
+    {0x7F, 0x09, 0x09, 0x09, 0x06}, // P
+    {0x3E, 0x41, 0x51, 0x21, 0x5E}, // Q
+    {0x7F, 0x09, 0x19, 0x29, 0x46}, // R
+    {0x46, 0x49, 0x49, 0x49, 0x31}, // S
+    {0x01, 0x01, 0x7F, 0x01, 0x01}, // T
+    {0x3F, 0x40, 0x40, 0x40, 0x3F}, // U
+    {0x1F, 0x20, 0x40, 0x20, 0x1F}, // V
+    {0x7F, 0x20, 0x18, 0x20, 0x7F}, // W
+    {0x63, 0x14, 0x08, 0x14, 0x63}, // X
+    {0x03, 0x04, 0x78, 0x04, 0x03}, // Y
+    {0x61, 0x51, 0x49, 0x45, 0x43}, // Z
+    {0x00, 0x7F, 0x41, 0x41, 0x00}, // [
+    {0x02, 0x04, 0x08, 0x10, 0x20}, // (backslash)
+    {0x00, 0x41, 0x41, 0x7F, 0x00}, // ]
+    {0x04, 0x02, 0x01, 0x02, 0x04}, // ^
+    {0x40, 0x40, 0x40, 0x40, 0x40}, // _
+    {0x00, 0x03, 0x05, 0x00, 0x00}, // `
+    {0x20, 0x54, 0x54, 0x54, 0x78}, // a
+    {0x7F, 0x48, 0x44, 0x44, 0x38}, // b
+    {0x38, 0x44, 0x44, 0x44, 0x20}, // c
+    {0x38, 0x44, 0x44, 0x48, 0x7F}, // d
+    {0x38, 0x54, 0x54, 0x54, 0x18}, // e
+    {0x08, 0x7E, 0x09, 0x01, 0x02}, // f
+    {0x08, 0x14, 0x54, 0x54, 0x3C}, // g
+    {0x7F, 0x08, 0x04, 0x04, 0x78}, // h
+    {0x00, 0x44, 0x7D, 0x40, 0x00}, // i
+    {0x20, 0x40, 0x40, 0x44, 0x3D}, // j
+    {0x7F, 0x10, 0x28, 0x44, 0x00}, // k
+    {0x00, 0x41, 0x7F, 0x40, 0x00}, // l
+    {0x7C, 0x04, 0x18, 0x04, 0x78}, // m
+    {0x7C, 0x08, 0x04, 0x04, 0x78}, // n
+    {0x38, 0x44, 0x44, 0x44, 0x38}, // o
+    {0x7C, 0x14, 0x14, 0x14, 0x08}, // p
+    {0x08, 0x14, 0x14, 0x18, 0x7C}, // q
+    {0x7C, 0x08, 0x04, 0x04, 0x08}, // r
+    {0x48, 0x54, 0x54, 0x54, 0x20}, // s
+    {0x04, 0x3F, 0x44, 0x40, 0x20}, // t
+    {0x3C, 0x40, 0x40, 0x20, 0x7C}, // u
+    {0x1C, 0x20, 0x40, 0x20, 0x1C}, // v
+    {0x3C, 0x40, 0x30, 0x40, 0x3C}, // w
+    {0x44, 0x28, 0x10, 0x28, 0x44}, // x
+    {0x0C, 0x50, 0x50, 0x50, 0x3C}, // y
+    {0x44, 0x64, 0x54, 0x4C, 0x44}, // z
+    {0x00, 0x08, 0x36, 0x41, 0x00}, // {
+    {0x00, 0x00, 0x7F, 0x00, 0x00}, // |
+    {0x00, 0x41, 0x36, 0x08, 0x00}, // }
+    {0x08, 0x08, 0x2A, 0x1C, 0x08}, // ->
+    {0x08, 0x1C, 0x2A, 0x08, 0x08}, // <-
+};
+
+
+// Initialize the OLED display
+void oledInit(int i2cHandle) {
+    i2cWriteByteData(i2cHandle, OLED_COMMAND, 0xAE); // Display OFF
+    i2cWriteByteData(i2cHandle, OLED_COMMAND, 0xD5); // Set display clock divide ratio/oscillator frequency
+    i2cWriteByteData(i2cHandle, OLED_COMMAND, 0x80);
+    i2cWriteByteData(i2cHandle, OLED_COMMAND, 0xA8); // Set multiplex ratio (1 to 64)
+    i2cWriteByteData(i2cHandle, OLED_COMMAND, 0x3F);
+    i2cWriteByteData(i2cHandle, OLED_COMMAND, 0xD3); // Set display offset
+    i2cWriteByteData(i2cHandle, OLED_COMMAND, 0x00);
+    i2cWriteByteData(i2cHandle, OLED_COMMAND, 0x40); // Set start line address
+    i2cWriteByteData(i2cHandle, OLED_COMMAND, 0x8D); // Charge pump
+    i2cWriteByteData(i2cHandle, OLED_COMMAND, 0x14);
+    i2cWriteByteData(i2cHandle, OLED_COMMAND, 0x20); // Memory addressing mode
+    i2cWriteByteData(i2cHandle, OLED_COMMAND, 0x00); // Horizontal addressing mode
+    i2cWriteByteData(i2cHandle, OLED_COMMAND, 0xA1); // Set segment re-map
+    i2cWriteByteData(i2cHandle, OLED_COMMAND, 0xC8); // COM output scan direction
+    i2cWriteByteData(i2cHandle, OLED_COMMAND, 0xDA); // COM pins hardware configuration
+    i2cWriteByteData(i2cHandle, OLED_COMMAND, 0x12);
+    i2cWriteByteData(i2cHandle, OLED_COMMAND, 0x81); // Set contrast control
+    i2cWriteByteData(i2cHandle, OLED_COMMAND, 0xCF);
+    i2cWriteByteData(i2cHandle, OLED_COMMAND, 0xD9); // Pre-charge period
+    i2cWriteByteData(i2cHandle, OLED_COMMAND, 0xF1);
+    i2cWriteByteData(i2cHandle, OLED_COMMAND, 0xDB); // Vcomh deselect level
+    i2cWriteByteData(i2cHandle, OLED_COMMAND, 0x40);
+    i2cWriteByteData(i2cHandle, OLED_COMMAND, 0xA4); // Disable entire display on
+    i2cWriteByteData(i2cHandle, OLED_COMMAND, 0xA6); // Set normal display (not inverted)
+    i2cWriteByteData(i2cHandle, OLED_COMMAND, 0xAF); // Display ON
 }
 
-void displayToScreen(void)
-{
-	printf("Hello"); 
+// Function to send data to the OLED
+void oledSendData(int i2cHandle, unsigned char data) {
+    i2cWriteByteData(i2cHandle, OLED_DATA, data);
 }
 
-int Display() {
-    int fd;
+// Set cursor position on the OLED display
+void oledSetCursor(int i2cHandle, int x, int y) {
+    i2cWriteByteData(i2cHandle, OLED_COMMAND, 0xB0 + y); // Set page start address (0-7)
+    i2cWriteByteData(i2cHandle, OLED_COMMAND, 0x00 + (x & 0x0F)); // Set lower column start address
+    i2cWriteByteData(i2cHandle, OLED_COMMAND, 0x10 + ((x >> 4) & 0x0F)); // Set higher column start address
+}
 
-    // Initialize WiringPi I2C interface
-    if (wiringPiSetup() == -1) {
-        printf("WiringPi setup failed.\n");
+// Clear the OLED display
+void oledClear(int i2cHandle) {
+    for (int page = 0; page < 8; page++) {
+        oledSetCursor(i2cHandle, 0, page);
+        for (int col = 0; col < OLED_WIDTH; col++) {
+            oledSendData(i2cHandle, 0x00); // Clear data
+        }
+    }
+}
+
+// Function to write a character to the OLED display
+void oledWriteChar(int i2cHandle, char ch) {
+    if (ch < 32 || ch > 127) ch = ' '; // Replace non-printable characters with a space
+    const unsigned char *bitmap = font5x7[ch - 32]; // Get the 5x7 bitmap for the character
+
+    for (int i = 0; i < 5; i++) {
+        oledSendData(i2cHandle, bitmap[i]); // Send each column of the character
+    }
+    oledSendData(i2cHandle, 0x00); // 1-pixel space between characters
+}
+
+// Function to write a string to the OLED display
+void oledWriteText(int i2cHandle, int x, int y, const char *text) {
+    oledSetCursor(i2cHandle, x, y); // Set the starting position
+
+    while (*text) {
+        oledWriteChar(i2cHandle, *text++); // Write each character
+    }
+}
+
+int main(void) {
+    int i2cHandle;
+
+    // Initialize the pigpio library
+    if (gpioInitialise() < 0) {
+        printf("Failed to initialize pigpio.\n");
         return -1;
     }
 
-    // Connect to the OLED display via I2C
-    fd = wiringPiI2CSetup(OLED_ADDR);
-    if (fd == -1) {
-        printf("Failed to initialize I2C communication.\n");
+    // Open I2C connection to OLED
+    i2cHandle = i2cOpen(1, OLED_I2C_ADDR, 0);
+    if (i2cHandle < 0) {
+        printf("Failed to initialize I2C.\n");
+        gpioTerminate();
         return -1;
     }
 
-    // Initialize the OLED display
-    oled_init(fd);
+    // Initialize OLED display
+    oledInit(i2cHandle);
 
     // Clear the display
-    oled_clear(fd);
+    oledClear(i2cHandle);
 
-    // Display text
-    oled_print_text(fd, "Hello, Raspberry Pi!");
+    // Display a message on the OLED
+    oledWriteText(i2cHandle, 0, 0, "Hello, Pi!");
 
-    // Keep the display on for a while
-    sleep(5);
+    // Keep the program running for a while to observe the display
+    sleep(10);
 
-    // Clear display before exit
-    oled_clear(fd);
+    // Cleanup and terminate pigpio
+    i2cClose(i2cHandle);
+    gpioTerminate();
 
     return 0;
 }
-
-void oled_init(int fd) 
-{
-    oled_send_command(fd, OLED_DISPLAYOFF);
-    oled_send_command(fd, OLED_SETDISPLAYCLOCKDIV);
-    oled_send_command(fd, 0x80);
-    oled_send_command(fd, OLED_SETMULTIPLEX);
-    oled_send_command(fd, 0x3F);
-    oled_send_command(fd, OLED_SETDISPLAYOFFSET);
-    oled_send_command(fd, 0x00);
-    oled_send_command(fd, OLED_SETSTARTLINE | 0x00);
-    oled_send_command(fd, OLED_CHARGEPUMP);
-    oled_send_command(fd, 0x14);
-    oled_send_command(fd, OLED_MEMORYMODE);
-    oled_send_command(fd, 0x00);
-    oled_send_command(fd, OLED_SEGREMAP | 0x1);
-    oled_send_command(fd, OLED_COMSCANDEC);
-    oled_send_command(fd, OLED_SETCOMPINS);
-    oled_send_command(fd, 0x12);
-    oled_send_command(fd, OLED_SETCONTRAST);
-    oled_send_command(fd, 0xCF);
-    oled_send_command(fd, OLED_SETPRECHARGE);
-    oled_send_command(fd, 0xF1);
-    oled_send_command(fd, OLED_SETVCOMDETECT);
-    oled_send_command(fd, 0x40);
-    oled_send_command(fd, OLED_DISPLAYALLON_RESUME);
-    oled_send_command(fd, OLED_NORMALDISPLAY);
-    oled_send_command(fd, OLED_DISPLAYON);
-}
-
-void oled_clear(int fd) {
-    for (int i = 0; i < (OLED_WIDTH * OLED_HEIGHT / 8); i++) 
-    {
-        oled_send_data(fd, 0x00);
-    }
-}
-
-void oled_send_command(int fd, uint8_t command) 
-{
-    wiringPiI2CWriteReg8(fd, OLED_CMD, command);
-}
-
-void oled_send_data(int fd, uint8_t data) 
-{
-    wiringPiI2CWriteReg8(fd, OLED_DATA, data);
-}
-
-void oled_print_text(int fd, const char* text) 
-{
-    while (*text) 
-    {
-        oled_send_data(fd, *text++);
-    }
-}
-
