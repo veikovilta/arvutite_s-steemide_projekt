@@ -9,17 +9,23 @@
 #include "stdbool.h"
 #include "HelperFunctions.h"
 #include "display.h"
+#include <string.h>
 #include "Sensor.h"
 #include "Main.h"
+#include "display.h"
+
 
 int main(void)
 {
     //väljakutse chrony start
-    system("chronyc systemctl start");
+    // Correct this command
+    system("sudo chronyc systemctl start");
+    printf("1st check");
+
 
     int i2cHandle = i2cInit("/dev/i2c-1", OLED_I2C_ADDR);
     if (i2cHandle < 0) return -1; // Exit if failed
-
+        printf("2nd check");
     // message string
     char message[100] = "";  
     char numberStr[20] = "";
@@ -35,12 +41,13 @@ int main(void)
     args.portPin = GPIO_BUTTON; // Set GPIO port number
     args.debugName = "InputButton";  // Set debug name
 	args.inputOutput = false;
-    if(pthread_create(&buttonThread, NULL, readButtonState(), (void*)&args) < 0)
+
+    if(pthread_create(&buttonThread, NULL, readButtonState, (void*)&args) < 0)
     {
         perror("Failed to create thread");
         oledClear(i2cHandle);
-        oledWriteText(i2cHandle, 0, 0, "ERROR Failed to create thread")
-        oledWriteText(i2cHandle, 2, 0, "Shutting Down")
+        oledWriteText(i2cHandle, 0, 0, "ERROR Failed to create thread");
+        oledWriteText(i2cHandle, 2, 0, "Shutting Down");
         system ("sudo shutdown -h now"); 
         return 1;
     }
@@ -52,7 +59,7 @@ int main(void)
     {
         preciseSleep(60);
     
-        if (CheckSync() == 0)
+        if (CheckSync(i2cHandle) == 0)
         {
             break;
         }
@@ -60,12 +67,12 @@ int main(void)
         {
             // kirjuta ekraanile et 60 sek ootama veel
             sprintf(numberStr, "%d", minutes);
-            message = "Syncing for another minute   minutes waited - ";
-            strcat(message, numberStr);
+            snprintf(message, sizeof(message), "Syncing for another %s minutes waited - ", numberStr);
+
             oledClear(i2cHandle);
-            // Display a message on the OLED
             oledWriteText(i2cHandle, 0, 0, message);
         }
+        
         minutes++;
 
         if (minutes == 10)
@@ -73,8 +80,8 @@ int main(void)
             oledClear(i2cHandle);
             // Display a message on the OLED
             oledWriteText(i2cHandle, 0, 0, "NOT SYNCED");
-            oledWriteText(i2cHandle, 2, 0, "ERROR BAD RECEPTION")
-            oledWriteText(i2cHandle, 4, 0, "Shutting Down")
+            oledWriteText(i2cHandle, 2, 0, "ERROR BAD RECEPTION");
+            oledWriteText(i2cHandle, 4, 0, "Shutting Down");
             system ("sudo shutdown -h now"); 
             return 1;
         }
@@ -94,8 +101,8 @@ int main(void)
     pthread_join(buttonThread, NULL);
 
     oledClear(i2cHandle);
-    oledWriteText(i2cHandle, 0, 0, "Program finished")
-    oledWriteText(i2cHandle, 2, 0, "Shutting Down")
+    oledWriteText(i2cHandle, 0, 0, "Program finished");
+    oledWriteText(i2cHandle, 2, 0, "Shutting Down");
 
     close(i2cHandle);
     system ("sudo shutdown -h now");

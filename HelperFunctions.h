@@ -17,10 +17,10 @@ struct args_port
 };
 
 struct port* openPort(int portPin, char* debugName, bool inputOutput);
-void preciseSleep(int seconds);
+void preciseSleep(double seconds);
 int readButtonState(struct args_port* args);
 void* readButtonState_thread(void* arg);
-int CheckSync();
+int CheckSync(int i2cHandle);
 void ShowReady();
 
 #endif

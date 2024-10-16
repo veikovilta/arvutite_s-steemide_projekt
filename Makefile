@@ -15,7 +15,7 @@ SRCS = Main.c Sensor.c HelperFunctions.c display.c
 OBJS = $(SRCS:.c=.o)
 
 # Library flags (for gpiod)
-LIBS = -lgpiod -lwiringPi
+LIBS = -lgpiod -lwiringPi -lpigpio -lrt
 
 # Default target
 all: $(TARGET)

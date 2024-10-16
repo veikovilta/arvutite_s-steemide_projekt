@@ -7,6 +7,8 @@
 #include <stdbool.h>
 #include "HelperFunctions.h"
 #include <gpiod.h>
+#include <string.h>
+#include "display.h"
 
 
 struct port* openPort(int portPin, char* debugName, bool inputOutput) {
@@ -58,22 +60,21 @@ struct port* openPort(int portPin, char* debugName, bool inputOutput) {
     return newPort;
 }
 
-void preciseSleep(int seconds) {
+
+void preciseSleep(double seconds) {
     struct timespec req, rem;
 
-    // Set the timespec structure with the requested sleep time
-    req.tv_sec = seconds;
-    req.tv_nsec = 0;  // No nanoseconds since we are working with whole seconds
+    // Break down the seconds into whole seconds and nanoseconds
+    req.tv_sec = (time_t)seconds;                     // Get the whole seconds part
+    req.tv_nsec = (long)((seconds - req.tv_sec) * 1e9); // Convert the fractional part to nanoseconds
 
-    // Use clock_nanosleep with CLOCK_MONOTONIC for precision and robustness
     int ret = clock_nanosleep(CLOCK_REALTIME, 0, &req, &rem);
 
     if (ret != 0) {
         if (ret == EINTR) {
             // Interrupted by a signal handler, display remaining time
-            printf("Sleep interrupted. Remaining: %ld seconds\n", rem.tv_sec);
-        }
-        else {
+            printf("Sleep interrupted. Remaining: %ld seconds and %ld nanoseconds\n", rem.tv_sec, rem.tv_nsec);
+        } else {
             // Handle other potential errors
             perror("clock_nanosleep failed");
         }
@@ -138,7 +139,7 @@ int readButtonState(struct args_port* args) {
 
 void ShowReady(void)
 {
-    struct args_port* args = (struct args_port*) arg;
+    struct args_port* args = (struct args_port*) args;
     struct port *openedPort = openPort(GPIO_READY_LED, "GPIO PIN 23", true);
 
     //display-ime 1 minut
@@ -146,11 +147,11 @@ void ShowReady(void)
     preciseSleep(60);
 }
 
-int CheckSync()
+int CheckSync(int i2cHandle)
 {
-    char buffer[BUFFER_SIZE];
     FILE *fp;
     double systemOffset = 0.0;
+    char buffer[200];
     char numberStr[20] = "";
     char message[100] = ""; 
 
@@ -159,8 +160,8 @@ int CheckSync()
     if (fp == NULL) 
     {
         oledClear(i2cHandle); // Clear the display
-        oledWriteText(i2cHandle, 0, 0, "Failed to run chronyc command.")
-        oledWriteText(i2cHandle, 2, 0, "Shutting Down")
+        oledWriteText(i2cHandle, 0, 0, "Failed to run chronyc command.");
+        oledWriteText(i2cHandle, 2, 0, "Shutting Down");
         return 1;
     }
 
@@ -181,8 +182,10 @@ int CheckSync()
 
     // Output the system offset to the user
     sprintf(numberStr, "%.9f", systemOffset);
-    message = "System time offset:";
-    strcat(message, numberStr);
+    snprintf(message, sizeof(message), "System time offset: %9s", numberStr);
+
+
+    
     oledClear(i2cHandle);
     // Display a message on the OLED
     oledWriteText(i2cHandle, 0, 0, message);
@@ -193,12 +196,12 @@ int CheckSync()
     // piiriks 0.1 ms
     if (systemOffset < 0.0001 && systemOffset > -0.0001) 
     {
-        oledWriteText(i2cHandle, 2, 0, "System clock is synchronized")
+        oledWriteText(i2cHandle, 2, 0, "System clock is synchronized");
         return 0;
     } 
     else 
     {
-        oledWriteText(i2cHandle, 2, 0, "System clock is not synchronized")
+        oledWriteText(i2cHandle, 2, 0, "System clock is not synchronized");
     }
 
     return 1;

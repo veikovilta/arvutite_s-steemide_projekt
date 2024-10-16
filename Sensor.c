@@ -3,6 +3,8 @@
 #include <time.h>
 #include <gpiod.h>
 #include "Sensor.h"
+#include "HelperFunctions.h"
+#include "display.h"
 
 
     struct timespec timestamps[BLINK_COUNT];
@@ -10,10 +12,8 @@
 
 void RegisterBlinks()
 {
-    struct args_port* args = (struct args_port*) arg;
+    struct args_port* args = (struct args_port*) args;
     struct port *openedPort = openPort(GPIO_PIN, "GPIO PIN 22", false);
-
-    int pin = 0;
 
     // Wait for the first blink
     while (gpiod_line_get_value(openedPort->line) == 0) 
@@ -23,34 +23,46 @@ void RegisterBlinks()
 
     // Record the time of the first blink
     clock_gettime(CLOCK_REALTIME, &startAndEndStamp[0]);
-    pin = 1;
+    
+    struct timespec currentTime;
+    // Get the current time with high precision
 
-    while (1) 
+    clock_gettime(CLOCK_REALTIME, &currentTime);
+
+    // Extract the seconds part of the current time
+    long currentSeconds = currentTime.tv_sec % 60;
+    long currentNanoseconds = currentTime.tv_nsec;
+    long nanosecondsToWait = 0;
+    long secondsToWait= 0;
+    double totalSecondsToWait = 0;
+    // If the seconds are less than 10, wait until the next full minute
+    if (currentSeconds < WAIT_TIME_BEFORE_NEXT_MINUTE) 
     {
-        // Get the current time with high precision
-        struct timespec currentTime;
-        clock_gettime(CLOCK_REALTIME, &currentTime);
-
-        // Extract the seconds part of the current time
-        long currentSeconds = currentTime.tv_sec % 60;
-
-        // If the seconds are less than 10, wait until the next full minute
-        if (currentSeconds < WAIT_TIME_BEFORE_NEXT_MINUTE) 
+        // Calculate how many seconds are left until the next full minute
+        secondsToWait = 60 + currentSeconds;
+        nanosecondsToWait = 1000000000 - currentNanoseconds;
+        
+        // Adjust the seconds to wait if we are already in the current second
+        if (nanosecondsToWait < 1000000000) 
         {
-            // Calculate how many seconds are left until the next full minute
-            long secondsToWait = 60 + currentSeconds;
-            preciseSleep(secondsToWait);  // Wait for the remaining seconds
-
-            break;
+            secondsToWait += 1; // Add a second since we have to wait for the full second
         }
-        else 
-        {
-            preciseSleep(currentSeconds);
-            break;
-        }
-
-        break;
+        
+        totalSecondsToWait = (double)secondsToWait + ((double)nanosecondsToWait / 1e9);
+        
     }
+    else 
+    {
+        nanosecondsToWait = 1000000000 - currentNanoseconds;
+        // Adjust the seconds to wait if we are already in the current second
+        if (nanosecondsToWait < 1000000000) 
+        {
+            secondsToWait += 1; // Add a second since we have to wait for the full second
+        }   
+        totalSecondsToWait = (double)secondsToWait + ((double)nanosecondsToWait / 1e9);
+        
+    }
+    preciseSleep(totalSecondsToWait);
     
     // Read the LED blinks and record timestamps
     for (int i = 0; i < BLINK_COUNT; i++) {
@@ -88,12 +100,8 @@ void RegisterBlinks()
     //fclose(file);
     
 
-    // Cleanup
-    gpioTerminate();
-
     gpiod_line_release(openedPort->line);
     gpiod_chip_close(openedPort->chip);
     free(openedPort);
 
-    return 0;
 }
