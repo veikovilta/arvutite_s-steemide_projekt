@@ -5,7 +5,6 @@
 #include <time.h>
 #include <errno.h>
 #include <stdbool.h>
-#include "LedBlink.h"
 #include "HelperFunctions.h"
 #include <gpiod.h>
 
@@ -147,23 +146,30 @@ void ShowReady(void)
     preciseSleep(60);
 }
 
-int CheckSync
+int CheckSync()
 {
     char buffer[BUFFER_SIZE];
     FILE *fp;
     double systemOffset = 0.0;
+    char numberStr[20] = "";
+    char message[100] = ""; 
 
     // Run the "chronyc tracking" command and open a pipe to read the output
     fp = popen("chronyc tracking", "r");
-    if (fp == NULL) {
-        printf("Failed to run chronyc command.\n");
+    if (fp == NULL) 
+    {
+        oledClear(i2cHandle); // Clear the display
+        oledWriteText(i2cHandle, 0, 0, "Failed to run chronyc command.")
+        oledWriteText(i2cHandle, 2, 0, "Shutting Down")
         return 1;
     }
 
     // Parse the output line by line
-    while (fgets(buffer, sizeof(buffer), fp) != NULL) {
+    while (fgets(buffer, sizeof(buffer), fp) != NULL) 
+    {
         // Look for the line that contains "System time" to get the offset
-        if (strstr(buffer, "System time") != NULL) {
+        if (strstr(buffer, "System time") != NULL) 
+        {
             // Extract the offset value (it will be the second value in the line)
             sscanf(buffer, "System time     : %lf seconds", &systemOffset);
             break;
@@ -174,16 +180,25 @@ int CheckSync
     pclose(fp);
 
     // Output the system offset to the user
-    printf("System time offset from chrony: %.9f seconds\n", systemOffset);
+    sprintf(numberStr, "%.9f", systemOffset);
+    message = "System time offset:";
+    strcat(message, numberStr);
+    oledClear(i2cHandle);
+    // Display a message on the OLED
+    oledWriteText(i2cHandle, 0, 0, message);
+
+    //printf("System time offset: %.9f \n", systemOffset);
 
     // Check synchronization status
-    if (systemOffset < 0.0001 && systemOffset > -0.0001) {
-        printf("System clock is well synchronized with chrony.\n");
+    // piiriks 0.1 ms
+    if (systemOffset < 0.0001 && systemOffset > -0.0001) 
+    {
+        oledWriteText(i2cHandle, 2, 0, "System clock is synchronized")
         return 0;
     } 
     else 
     {
-        printf("System clock is not well synchronized\n");
+        oledWriteText(i2cHandle, 2, 0, "System clock is not synchronized")
     }
 
     return 1;
