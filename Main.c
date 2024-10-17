@@ -2,81 +2,87 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <time.h>
 #include <errno.h>
-#include <gpiod.h> // Add this line in your HelperFunctions.h and Main.c files if not already present
+#include <gpiod.h> 
 #include "stdbool.h"
-#include "LedBlink.h"
 #include "HelperFunctions.h"
 #include "display.h"
-
+#include <string.h>
 #include "Main.h"
+#include "display.h"
+#include "LedBlink.h"
 
-//jagatud muutuja bool
-//~ bool loop = true;
-//~ int currentTime = clock_gettime(CLOCK_REALTIME) 
 
 int main(void)
 {
     //väljakutse chrony start
-    //~ system("chronyc systemctl start");
+    // Correct this command
+    system("sudo chronyc systemctl start");
+    printf("1st check");
 
-    //returnib funktsioon, mis checkib kas on low või high
-    //ootab kuni inimene teeb nupuga valiku 
-    // kuvab kumb on
-    
-    struct args_port mingiNupp = { .portPin = 4, .debugName = "GPIO Port 4", .inputOutput = true};
-    
-    int pin15 = readButtonState(&mingiNupp);
-    
-    if (pin15 == 1)
-    {
-        /* siis on vastuvõtja */
-    }
-    else
-    {
-        /* siis on saatja */
-    }
-    
-    //check if sync
-    //sleep 60 sec vnii chrony salvestamiseks
-    //pärast checki kui hea ka
 
-    //lediga näitama et on cynced ja ready (mõlemal)
+    int i2cHandle = i2cInit("/dev/i2c-1", OLED_I2C_ADDR);
+    if (i2cHandle < 0) return -1; // Exit if failed
+        printf("2nd check");
 
-    //järgmisene vajutad start ja sellest läheb 
-    // käima järgmise täis minutiga test protsess
+    oledInit(i2cHandle); // Initialize the OLED
+    oledClear(i2cHandle); // Clear the display
 
-    pthread_t blinkThread, displayThread;
-
-    //~ if(pthread_create(&syncThread, NULL, syncWithChrony, NULL) != 0){
-        //~ perror("Failed to create thread");
-        //~ return 1;
-    //~ }
-    
+    // eraldi thread enne käima mis checkib nuppu
+    pthread_t buttonThread;
     struct args_port args;
 
     // Initialize thread arguments
-    args.portPin = GPIO_LINE_MAIN_BLINK;                 // Set GPIO port number
-    args.debugName = "LEDController";  // Set debug name
+    args.portPin = GPIO_BUTTON; // Set GPIO port number
+    args.debugName = "InputButton";  // Set debug name
 	args.inputOutput = false;
-    
-    // Create a thread for other jobs
-    if(pthread_create(&blinkThread, NULL, ledBlinking20, (void*)&args) != 0){
-        perror("Failed to create thread");
-        return 1;
-    }
-    
-    //create thread for displaying info on the screen
-    if(pthread_create(&displayThread, NULL, displayInfo, NULL) != 0){
-        perror("Failed to create thread");
-        return 1;
-    }
-    // Wait for the threads to complete (they won't in this case)
-    //~ pthread_join(sync_thread, NULL);
-    pthread_join(blinkThread, NULL);
-    pthread_join(displayThread, NULL);
 
+    if(pthread_create(&buttonThread, NULL, readButtonState, (void*)&args) < 0)
+    {
+        perror("Failed to create thread");
+        oledClear(i2cHandle);
+        oledWriteText(i2cHandle, 0, 0, "ERROR Failed to create thread");
+        oledWriteText(i2cHandle, 2, 0, "Shutting Down");
+        system ("sudo shutdown -h now"); 
+        return 1;
+    }
+
+    // teeb 60 sekundilist checki kui hea kell on
+    // 10min vähemalt
+    int minutes = 0;
+    while(1)
+    {
+        preciseSleep(5);
+    
+        if (CheckSync(i2cHandle) == 0)
+        {
+            break;
+        }
+    }
+
+    //lediga näitama et on cynced ja ready (mõlemal)
+    ShowReady();
+
+	struct args_port ledBlinkPort; 
+	
+	ledBlinkPort.portPin = GPIO_LINE_MAIN_BLINK; 
+	ledBlinkPort.debugName = "ledBlink";
+	ledBlinkPort.inputOutput = false;
+
+	struct timespec firstblink = ledBlink()
+
+    // Wait for the threads to complete
+    // TODO exit neile funktsioonidele vaja juurde teha
+    pthread_join(buttonThread, NULL);
+
+    oledClear(i2cHandle);
+    oledWriteText(i2cHandle, 0, 0, "Program finished");
+    oledWriteText(i2cHandle, 2, 0, "Shutting Down");
+
+    close(i2cHandle);
+    system ("sudo shutdown -h now");
     return 0;
 }
 

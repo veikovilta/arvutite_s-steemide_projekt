@@ -4,6 +4,7 @@
 #define GPIO_LINE_MAIN_BLINK 17 
 
 void* ledBlinking20(void* arg);
-void* ledBlinkOnce(void* arg);
+//void* ledBlinkOnce(void* arg);
+timespec* ledBlinkOnce(struct* args_port newPort); 
 
 #endif
