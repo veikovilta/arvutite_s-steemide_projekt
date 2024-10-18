@@ -16,9 +16,8 @@
 
 int main(void)
 {
-    if (system("sudo chronyc systemctl start") != 0) {
+    if (system("sudo systemctl start chrony") != 0) {
         perror("Failed to start chrony service");
-        // Handle the error or exit
     }
 
 
@@ -30,7 +29,8 @@ int main(void)
 
     oledInit(i2cHandle); // Initialize the OLED
     oledClear(i2cHandle); // Clear the display
-
+    
+    /*
     // eraldi thread enne käima mis checkib nuppu
     pthread_t buttonThread;
     struct args_port args;
@@ -54,11 +54,11 @@ int main(void)
             // Handle the error or exit
         }
         return 1;
-    }
+    } */
 
     // teeb 60 sekundilist checki kui hea kell on
     // 10min vähemalt
-    int minutes = 0;
+    int minutes = 1;
     while(1)
     {
         preciseSleep(60);
@@ -71,7 +71,8 @@ int main(void)
         {
             // kirjuta ekraanile et 60 sek ootama veel
             sprintf(numberStr, "%d", minutes);
-            snprintf(message, sizeof(message), "Syncing for another %s minutes waited - ", numberStr);
+            snprintf(message, sizeof(message), "minutes waited : %s", numberStr);
+            printf("%s\n", message);
 
             oledClear(i2cHandle);
             oledWriteText(i2cHandle, 0, 0, message);
@@ -79,7 +80,7 @@ int main(void)
         
         minutes++;
 
-        if (minutes == 10)
+        if (minutes == 11)
         {
             oledClear(i2cHandle);
             // Display a message on the OLED
@@ -108,7 +109,7 @@ int main(void)
     
     // Wait for the threads to complete
     // TODO exit neile funktsioonidele vaja juurde teha
-    pthread_join(buttonThread, NULL);
+    //pthread_join(buttonThread, NULL);
 
     oledClear(i2cHandle);
     oledWriteText(i2cHandle, 0, 0, "Program finished");
