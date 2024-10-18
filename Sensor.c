@@ -7,10 +7,10 @@
 #include "display.h"
 
 
-    struct timespec timestamps[BLINK_COUNT];
-    struct timespec startAndEndStamp[2];
 
-void RegisterBlinks()
+struct timespec startAndEndStamp[2];
+
+double* RegisterBlinks()
 {
     struct args_port* args = (struct args_port*) args;
     struct port *openedPort = openPort(GPIO_PIN, "GPIO PIN 22", false);
@@ -59,10 +59,19 @@ void RegisterBlinks()
         {
             secondsToWait += 1; // Add a second since we have to wait for the full second
         }   
+        
         totalSecondsToWait = (double)secondsToWait + ((double)nanosecondsToWait / 1e9);
         
     }
+    
+    
     preciseSleep(totalSecondsToWait);
+    
+    struct timespec senderStartTime; 
+    
+    clock_gettime(CLOCK_REALTIME, &senderStartTime);
+        
+    struct timespec timestamps[BLINK_COUNT]; 
     
     // Read the LED blinks and record timestamps
     for (int i = 0; i < BLINK_COUNT; i++) {
@@ -74,7 +83,7 @@ void RegisterBlinks()
 
         // Get current time with high precision
         clock_gettime(CLOCK_REALTIME, &timestamps[i]);
-        if (i == (BLINK_COUNT-1) )
+        if (i == (BLINK_COUNT-1))
         {
             clock_gettime(CLOCK_REALTIME, &startAndEndStamp[1]);
         }
@@ -85,6 +94,9 @@ void RegisterBlinks()
         }
     }
 
+	double *delaysCalculated = calculateDelays(timestamps, senderStartTime);
+
+		
     //Write to the file
     //
     // !! TODO !!!
@@ -103,5 +115,64 @@ void RegisterBlinks()
     gpiod_line_release(openedPort->line);
     gpiod_chip_close(openedPort->chip);
     free(openedPort);
+	
+	return delaysCalculated; 
+}
 
+//error handling to-do if isnt some readings are wrong 
+double* calculateDelays(const struct timespec *timestamps,
+	const struct timespec senderStartTime) 
+{
+    double delaysCalculated[BLINK_COUNT];
+	
+	setArrayToZero(delaysCalculated);
+	
+    for (int i = 0; i < BLINK_COUNT; i++) {
+    
+        double sensorSawTimeSec = 
+            (double)timestamps[i].tv_sec + 
+            ((double)timestamps[i].tv_nsec / 1e9);
+
+        double blinkStartTimeSec = 
+            (double)senderStartTime.tv_sec + 
+            ((double)senderStartTime.tv_nsec / 1e9) +
+            i * BLINK_INTERVAL;
+		
+		if (sensorSawTimeSec > blinkStartTimeSec)
+		{
+			delaysCalculated[i] = sensorSawTimeSec - blinkStartTimeSec;
+		}
+	}
+
+    return delaysCalculated;
+}
+
+void setArrayToZero(double *array)
+{
+    
+    for (int i = 0; i < BLINK_COUNT; i++)
+    {
+        array[i] = 0.0;
+    }
+}
+
+double calculateAverage(double *data, int *count)
+{
+    double sum = 0.0;
+
+	for (int i = 0; i < BLINK_COUNT; i++)
+	{
+		if (data[i] != 0.0)
+		{
+			sum += data[i]; // Add the value to the sum
+			*count++; // Increment the count of values
+		}
+	}
+
+    // Check for division by zero
+    if (*count == 0) {
+        return 0.0; // or handle it as an error
+    }
+
+    return sum / *count; // Return the average
 }

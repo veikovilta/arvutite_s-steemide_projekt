@@ -102,7 +102,19 @@ int main(void)
     //lediga näitama et on cynced ja ready (mõlemal)
     ShowReady();
 
-    RegisterBlinks(); 
+    double *delaysCalculated = RegisterBlinks(); 
+    
+    int numOfValidCalculations = 0;
+    double averageDelay = calculateAverage(delaysCalculated, &numOfValidCalculations); 
+    
+    char averageDelayStr[50]; // Adjust size as necessary
+    sprintf(averageDelayStr, "Average Delay: %.5f\n", averageDelay); // Format average delay
+    
+    oledClear(i2cHandle);
+    oledWriteText(i2cHandle, 0, 0, averageDelayStr);
+    
+    printDelaysToFile("delays.txt", delaysCalculated, numOfValidCalculations, averageDelay);
+    
     // siia faili salvestamine juurde ja hilistuse arvutus
     // TODO!
     // !!!!

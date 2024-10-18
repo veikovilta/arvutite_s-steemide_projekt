@@ -227,3 +227,24 @@ int CheckSync(int i2cHandle)
 
     return 1;
 }
+
+void printDelaysToFile(const char *filename, double *data, int count, double averageDelay)
+{
+    FILE *file = fopen(filename, "w"); // Open file for writing
+
+    if (file == NULL) {
+        perror("Error opening file"); // Handle file opening error
+        return;
+    }
+
+    // Print each delay value to the file
+    fprintf(file, "Delays:\n");
+    for (int i = 0; i < count; i++) {
+        fprintf(file, "Delay %d: %.2f\n", i + 1, data[i]);
+    }
+
+    // Print the average delay to the file
+    fprintf(file, "\nAverage Delay: %.2f\n", averageDelay); // Print average to file
+
+    fclose(file); // Close the file
+}
