@@ -12,20 +12,18 @@
 #include <string.h>
 #include "Sensor.h"
 #include "Main.h"
-#include "display.h"
 
 
 int main(void)
 {
-    //väljakutse chrony start
-    // Correct this command
-    system("sudo chronyc systemctl start");
-    printf("1st check");
+    if (system("sudo chronyc systemctl start") != 0) {
+        perror("Failed to start chrony service");
+        // Handle the error or exit
+    }
 
 
     int i2cHandle = i2cInit("/dev/i2c-1", OLED_I2C_ADDR);
     if (i2cHandle < 0) return -1; // Exit if failed
-        printf("2nd check");
     // message string
     char message[100] = "";  
     char numberStr[20] = "";
@@ -42,13 +40,19 @@ int main(void)
     args.debugName = "InputButton";  // Set debug name
 	args.inputOutput = false;
 
-    if(pthread_create(&buttonThread, NULL, readButtonState, (void*)&args) < 0)
+    if(pthread_create(&buttonThread, NULL, readButtonState_thread, (void*)&args) < 0)
     {
         perror("Failed to create thread");
         oledClear(i2cHandle);
         oledWriteText(i2cHandle, 0, 0, "ERROR Failed to create thread");
         oledWriteText(i2cHandle, 2, 0, "Shutting Down");
-        system ("sudo shutdown -h now"); 
+        
+        if (system ("sudo shutdown -h now") != 0) {
+            perror("Failed to shutdown");
+            oledClear(i2cHandle);
+            oledWriteText(i2cHandle, 2, 0, "Shutting Down failed");
+            // Handle the error or exit
+        }
         return 1;
     }
 
@@ -82,7 +86,13 @@ int main(void)
             oledWriteText(i2cHandle, 0, 0, "NOT SYNCED");
             oledWriteText(i2cHandle, 2, 0, "ERROR BAD RECEPTION");
             oledWriteText(i2cHandle, 4, 0, "Shutting Down");
-            system ("sudo shutdown -h now"); 
+           
+            if (system ("sudo shutdown -h now") != 0) {
+                perror("Failed to shutdown");
+                oledClear(i2cHandle);
+                oledWriteText(i2cHandle, 2, 0, "Shutting Down failed");
+                // Handle the error or exit
+            }
             return 1;
         }
         
@@ -105,6 +115,12 @@ int main(void)
     oledWriteText(i2cHandle, 2, 0, "Shutting Down");
 
     close(i2cHandle);
-    system ("sudo shutdown -h now");
+
+    if (system ("sudo shutdown -h now") != 0) {
+        perror("Failed to shutdown");
+        oledClear(i2cHandle);
+        oledWriteText(i2cHandle, 2, 0, "Shutting Down failed");
+        // Handle the error or exit
+    }
     return 0;
 }

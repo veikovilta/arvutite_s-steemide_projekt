@@ -11,6 +11,8 @@
 #include "display.h"
 
 
+int value = 0;
+
 struct port* openPort(int portPin, char* debugName, bool inputOutput) {
     struct port* newPort = (struct port*) malloc(sizeof(struct port));
     if (newPort == NULL) {
@@ -19,7 +21,7 @@ struct port* openPort(int portPin, char* debugName, bool inputOutput) {
     }
 
     // Open GPIO chip
-    newPort->chip = gpiod_chip_open_by_number(portPin);
+    newPort->chip = gpiod_chip_open_by_number((unsigned)portPin);
     if (!newPort->chip) {
         perror("Open GPIO chip failed");
         free(newPort);
@@ -27,7 +29,7 @@ struct port* openPort(int portPin, char* debugName, bool inputOutput) {
     }
 
     // Get GPIO line
-    newPort->line = gpiod_chip_get_line(newPort->chip, portPin);
+    newPort->line = gpiod_chip_get_line(newPort->chip, (unsigned)portPin);
     if (!newPort->line) {
         perror("Get GPIO line failed");
         gpiod_chip_close(newPort->chip);
@@ -90,16 +92,18 @@ void* readButtonState_thread(void* arg) {
     }
 
     while (1) {
-        int value = gpiod_line_get_value(openedPort->line);
-        if (value < 0) {
+        int value3 = gpiod_line_get_value(openedPort->line);
+        if (value3 < 0) {
             perror("Failed to read button state");
             break; // Exit the loop on error
         }
 
-        if (value == 1) {
+        if (value3 == 1) {
             printf("Button is pressed!\n");
+            value = 1;
         } else {
             printf("Button is not pressed.\n");
+            value = 0;
         }
 
         usleep(200000);
@@ -112,39 +116,50 @@ void* readButtonState_thread(void* arg) {
     return NULL;
 }
 
-int readButtonState(struct args_port* args) {
-    
+void *readButtonState(void* arg) {
+    struct args_port *args = (struct args_port*) arg;
     struct port *openedPort = openPort(args->portPin, args->debugName, args->inputOutput);
 
     if (openedPort == NULL) {
         fprintf(stderr, "Failed to open port.\n");
-        return -1;
+        return NULL;
     }
 
-    int value = gpiod_line_get_value(openedPort->line);
-    if (value < 0) {
+    int value2 = gpiod_line_get_value(openedPort->line);
+    if (value2 < 0) {
         perror("Failed to read button state");
         gpiod_line_release(openedPort->line);
         gpiod_chip_close(openedPort->chip);
         free(openedPort);
-        return -1;
+        return NULL;
     }
 
     gpiod_line_release(openedPort->line);
     gpiod_chip_close(openedPort->chip);
     free(openedPort);
 
-    return value;
+    value = value2;
+    return NULL;
 }
 
 void ShowReady(void)
 {
-    struct args_port* args = (struct args_port*) args;
     struct port *openedPort = openPort(GPIO_READY_LED, "GPIO PIN 23", true);
 
-    //display-ime 1 minut
+    if (openedPort == NULL) {
+        perror("Failed to open ready LED port");
+        return;
+    }
+
+    // Display LED for 1 minute
     gpiod_line_set_value(openedPort->line, 1);
     preciseSleep(60);
+
+    // Turn off the LED and clean up
+    gpiod_line_set_value(openedPort->line, 0);
+    gpiod_line_release(openedPort->line);
+    gpiod_chip_close(openedPort->chip);
+    free(openedPort);
 }
 
 int CheckSync(int i2cHandle)
@@ -171,14 +186,20 @@ int CheckSync(int i2cHandle)
         // Look for the line that contains "System time" to get the offset
         if (strstr(buffer, "System time") != NULL) 
         {
-            // Extract the offset value (it will be the second value in the line)
-            sscanf(buffer, "System time     : %lf seconds", &systemOffset);
+             // Extract the offset value (it will be the second value in the line)
+            if (sscanf(buffer, "System time     : %lf seconds", &systemOffset) != 1) {
+                fprintf(stderr, "Failed to parse system offset.\n");
+                break;
+            }
             break;
         }
     }
 
     // Close the pipe
-    pclose(fp);
+    if (pclose(fp) == -1) {
+        perror("pclose failed");
+        return 1;
+    }
 
     // Output the system offset to the user
     sprintf(numberStr, "%.9f", systemOffset);

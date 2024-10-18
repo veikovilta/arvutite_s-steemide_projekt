@@ -14,7 +14,7 @@ SRCS = Main.c Sensor.c HelperFunctions.c display.c
 # Object files (generated from the source files)
 OBJS = $(SRCS:.c=.o)
 
-# Library flags (for gpiod)
+# Library flags
 LIBS = -lgpiod -lwiringPi -lpigpio -lrt
 
 # Default target
