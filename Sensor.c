@@ -2,27 +2,22 @@
 #include <unistd.h>
 #include <time.h>
 #include <gpiod.h>
+#include <math.h> 
 #include "Sensor.h"
 #include "HelperFunctions.h"
 #include "display.h"
 
 
-
-struct timespec startAndEndStamp[2];
-
 double* RegisterBlinks()
 {
     struct args_port* args = (struct args_port*) args;
-    struct port *openedPort = openPort(GPIO_PIN, "GPIO PIN 22", false);
+    struct port *openedPort = openPort(GPIO_PIN_LED, "GPIO PIN 22", false);
 
     // Wait for the first blink
     while (gpiod_line_get_value(openedPort->line) == 0) 
     {
         preciseSleep(0.1); 
     }
-
-    // Record the time of the first blink
-    clock_gettime(CLOCK_REALTIME, &startAndEndStamp[0]);
     
     struct timespec currentTime;
     // Get the current time with high precision
@@ -78,15 +73,13 @@ double* RegisterBlinks()
         // Wait for the GPIO pin to go HIGH
         while (gpiod_line_get_value(openedPort->line) == 0) 
         {
-             preciseSleep(0.001);
+            preciseSleep(0.001);  //vb checkimis sleep ajad ära võtma?
+                                  // sealt mingi kadu ju
         }
 
         // Get current time with high precision
         clock_gettime(CLOCK_REALTIME, &timestamps[i]);
-        if (i == (BLINK_COUNT-1))
-        {
-            clock_gettime(CLOCK_REALTIME, &startAndEndStamp[1]);
-        }
+
         // Wait for the GPIO pin to go LOW
         while (gpiod_line_get_value(openedPort->line) ==1) 
         {
@@ -95,22 +88,6 @@ double* RegisterBlinks()
     }
 
 	double *delaysCalculated = calculateDelays(timestamps, senderStartTime);
-
-		
-    //Write to the file
-    //
-    // !! TODO !!!
-    //
-    // Write timestamps to a file
-
-    //for (int i = 0; i < BLINK_COUNT; i++) {
-    //    fprintf(file, "%ld.%09ld\n", timestamps[i].tv_sec, timestamps[i].tv_nsec);
-    //}
-    //initial start and ending time, for debugging how long the program takes
-    //fprintf(file, "Start Time: %ld.%09ld\n", startAndEndStamp[0].tv_sec, startAndEndStamp[0].tv_nsec);
-    //fprintf(file, "End Time: %ld.%09ld\n", startAndEndStamp[1].tv_sec, startAndEndStamp[1].tv_nsec);
-    //fclose(file);
-    
 
     gpiod_line_release(openedPort->line);
     gpiod_chip_close(openedPort->chip);
@@ -123,6 +100,7 @@ double* RegisterBlinks()
 double* calculateDelays(const struct timespec *timestamps,
 	const struct timespec senderStartTime) 
 {
+    double TimeFix = 0.0; // kui läheb syncist välja siis kasutan
     double delaysCalculated[BLINK_COUNT];
 	
 	setArrayToZero(delaysCalculated);
@@ -136,12 +114,47 @@ double* calculateDelays(const struct timespec *timestamps,
         double blinkStartTimeSec = 
             (double)senderStartTime.tv_sec + 
             ((double)senderStartTime.tv_nsec / 1e9) +
-            i * BLINK_INTERVAL;
+            i * BLINK_INTERVAL + TimeFix;
 		
+        // Check if the time difference is greater than 2 seconds
+        if (fabs(sensorSawTimeSec - blinkStartTimeSec) > BLINK_INTERVAL ) 
+        {
+           if (i + 1 < BLINK_COUNT) { // Ensure there's a next blink to check
+                double nextSensorSawTimeSec = 
+                    (double)timestamps[i + 1].tv_sec + 
+                    ((double)timestamps[i + 1].tv_nsec / 1e9);
+
+                double nextBlinkStartTimeSec = 
+                    (double)senderStartTime.tv_sec + 
+                    ((double)senderStartTime.tv_nsec / 1e9) +
+                    (i + 1) * BLINK_INTERVAL + TimeFix;
+
+                // If the next blink is within the correct range
+                if (fabs(nextSensorSawTimeSec - nextBlinkStartTimeSec) <= BLINK_INTERVAL) 
+                {
+                    continue;  // Skip the current blink
+                }
+                if (fabs(sensorSawTimeSec - nextBlinkStartTimeSec) <= BLINK_INTERVAL) 
+                {
+                    TimeFix += BLINK_INTERVAL;
+                    delaysCalculated[i] = sensorSawTimeSec - TimeFix + blinkStartTimeSec;
+                    continue;
+                }
+                else
+                {
+                    continue;  // Skip the current blink if both are out of sync
+                }
+            }
+            else 
+            {
+                continue;  // No next blink to check, so skip this one
+            }
+        }
 		if (sensorSawTimeSec > blinkStartTimeSec)
 		{
 			delaysCalculated[i] = sensorSawTimeSec - blinkStartTimeSec;
 		}
+        
 	}
 
     return delaysCalculated;
