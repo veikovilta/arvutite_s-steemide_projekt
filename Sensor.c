@@ -137,7 +137,7 @@ double* calculateDelays(const struct timespec *timestamps,
                 if (fabs(sensorSawTimeSec - nextBlinkStartTimeSec) <= BLINK_INTERVAL) 
                 {
                     TimeFix += BLINK_INTERVAL;
-                    delaysCalculated[i] = sensorSawTimeSec - TimeFix + blinkStartTimeSec;
+                    delaysCalculated[i] = sensorSawTimeSec - BLINK_INTERVAL + blinkStartTimeSec;
                     continue;
                 }
                 else
