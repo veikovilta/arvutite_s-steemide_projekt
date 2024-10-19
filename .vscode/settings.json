@@ -5,6 +5,5 @@
         "time.h": "c",
         "display.h": "c"
     },
-    "ros.distro": "humble",
     "makefile.configureOnOpen": false
 }
