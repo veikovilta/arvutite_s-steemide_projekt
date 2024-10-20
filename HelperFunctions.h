@@ -19,6 +19,7 @@ struct args_port
 struct port* openPort(int portPin, char* debugName, bool inputOutput);
 void preciseSleep(double seconds);
 void *readButtonState(void* args);
+void printDelaysToFile(const char *filename, double *data, int count, double averageDelay);
 void* readButtonState_thread(void* arg);
 int CheckSync(int i2cHandle);
 void ShowReady();

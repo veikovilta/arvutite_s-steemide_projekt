@@ -76,7 +76,6 @@ double* RegisterBlinks()
             preciseSleep(0.001);  //vb checkimis sleep ajad ära võtma?
                                   // sealt mingi kadu ju
         }
-
         // Get current time with high precision
         clock_gettime(CLOCK_REALTIME, &timestamps[i]);
 
@@ -86,7 +85,7 @@ double* RegisterBlinks()
             preciseSleep(0.001);
         }
     }
-
+    
 	double *delaysCalculated = calculateDelays(timestamps, senderStartTime);
 
     gpiod_line_release(openedPort->line);
@@ -101,7 +100,16 @@ double* calculateDelays(const struct timespec *timestamps,
 	const struct timespec senderStartTime) 
 {
     double TimeFix = 0.0; // kui läheb syncist välja siis kasutan
-    double delaysCalculated[BLINK_COUNT];
+    
+    double* delaysCalculated = (double*)malloc(BLINK_COUNT * sizeof(double));
+    
+    // Check if malloc was successful
+    if (delaysCalculated == NULL) {
+        // Handle memory allocation failure
+        fprintf(stderr, "Memory allocation failed for delaysCalculated\n");
+        return NULL;
+    }
+    //double delaysCalculated[BLINK_COUNT];
 	
 	setArrayToZero(delaysCalculated);
 	
@@ -178,7 +186,7 @@ double calculateAverage(double *data, int *count)
 		if (data[i] != 0.0)
 		{
 			sum += data[i]; // Add the value to the sum
-			*count++; // Increment the count of values
+			(*count)++; // Increment the count of values
 		}
 	}
 
