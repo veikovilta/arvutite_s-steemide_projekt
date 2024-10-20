@@ -75,7 +75,7 @@ int main(void)
             printf("%s\n", message);
 
             oledClear(i2cHandle);
-            oledWriteText(i2cHandle, 0, 0, message);
+            oledWriteText(i2cHandle, 0, 6, message);
         }
         
         minutes++;
@@ -85,13 +85,13 @@ int main(void)
             oledClear(i2cHandle);
             // Display a message on the OLED
             oledWriteText(i2cHandle, 0, 0, "NOT SYNCED");
-            oledWriteText(i2cHandle, 2, 0, "ERROR BAD RECEPTION");
-            oledWriteText(i2cHandle, 4, 0, "Shutting Down");
+            oledWriteText(i2cHandle, 0, 2, "ERROR BAD RECEPTION");
+            oledWriteText(i2cHandle, 0, 4, "Shutting Down");
            
             if (system ("sudo shutdown -h now") != 0) {
                 perror("Failed to shutdown");
                 oledClear(i2cHandle);
-                oledWriteText(i2cHandle, 2, 0, "Shutting Down failed");
+                oledWriteText(i2cHandle, 0, 2, "Shutting Down failed");
                 // Handle the error or exit
             }
             return 1;
@@ -99,7 +99,7 @@ int main(void)
         
     }
 
-    //lediga näitama et on cynced ja ready (mõlemal)
+    //lediga näitama et on synced ja ready (mõlemal)
     ShowReady();
 
     double *delaysCalculated = RegisterBlinks(); 
@@ -114,26 +114,19 @@ int main(void)
     oledWriteText(i2cHandle, 0, 0, averageDelayStr);
     
     printDelaysToFile("delays.txt", delaysCalculated, numOfValidCalculations, averageDelay);
-    
-    // siia faili salvestamine juurde ja hilistuse arvutus
-    // TODO!
-    // !!!!
-    
-    // Wait for the threads to complete
+
     // TODO exit neile funktsioonidele vaja juurde teha
     //pthread_join(buttonThread, NULL);
 
     oledClear(i2cHandle);
     oledWriteText(i2cHandle, 0, 0, "Program finished");
-    oledWriteText(i2cHandle, 2, 0, "Shutting Down");
-
+    oledWriteText(i2cHandle, 0, 2, "Shutting Down");
+    preciseSleep(2.0);
+    oledClear(i2cHandle);
     close(i2cHandle);
 
     if (system ("sudo shutdown -h now") != 0) {
         perror("Failed to shutdown");
-        oledClear(i2cHandle);
-        oledWriteText(i2cHandle, 2, 0, "Shutting Down failed");
-        // Handle the error or exit
     }
     return 0;
 }

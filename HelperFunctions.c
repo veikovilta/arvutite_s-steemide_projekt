@@ -10,6 +10,8 @@
 #include <string.h>
 #include "display.h"
 
+#define GPIO_CHIP "/dev/gpiochip0"
+#define GPIO_READY_LED 24
 
 int value = 0;
 
@@ -143,14 +145,13 @@ void *readButtonState(void* arg) {
 }
 
 void ShowReady(void)
-{
+{   
+    struct args_port* args = (struct args_port*) args;
     struct port *openedPort = openPort(GPIO_READY_LED, "GPIO PIN 23", true);
 
     if (openedPort == NULL) {
-        perror("Failed to open ready LED port");
         return;
     }
-
     // Display LED for 1 minute
     gpiod_line_set_value(openedPort->line, 1);
     preciseSleep(60);
@@ -176,7 +177,7 @@ int CheckSync(int i2cHandle)
     {
         oledClear(i2cHandle); // Clear the display
         oledWriteText(i2cHandle, 0, 0, "Failed to run chronyc command.");
-        oledWriteText(i2cHandle, 2, 0, "Shutting Down");
+        oledWriteText(i2cHandle, 0, 2, "Shutting Down");
         return 1;
     }
 
@@ -203,26 +204,22 @@ int CheckSync(int i2cHandle)
 
     // Output the system offset to the user
     sprintf(numberStr, "%.9f", systemOffset);
-    snprintf(message, sizeof(message), "System time offset: %9s", numberStr);
-
-
+    snprintf(message, sizeof(message), "Offset: %7s", numberStr);
     
     oledClear(i2cHandle);
     // Display a message on the OLED
     oledWriteText(i2cHandle, 0, 0, message);
 
-    //printf("System time offset: %.9f \n", systemOffset);
-
     // Check synchronization status
     // piiriks 0.1 ms
     if (systemOffset < 0.0001 && systemOffset > -0.0001) 
     {
-        oledWriteText(i2cHandle, 2, 0, "System clock is synchronized");
+        oledWriteText(i2cHandle, 0, 2, "Clock is in sync");
         return 0;
     } 
     else 
     {
-        oledWriteText(i2cHandle, 2, 0, "System clock is not synchronized");
+        oledWriteText(i2cHandle, 0, 2, "Clock is not in sync");
     }
 
     return 1;

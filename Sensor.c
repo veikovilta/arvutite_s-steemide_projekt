@@ -18,7 +18,6 @@ double* RegisterBlinks()
     {
         preciseSleep(0.1); 
     }
-    
     struct timespec currentTime;
     // Get the current time with high precision
 
