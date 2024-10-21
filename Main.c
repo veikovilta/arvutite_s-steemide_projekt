@@ -98,10 +98,10 @@ int main(void)
         }
         
     }
-
+    printf("synced\n");
     //lediga näitama et on synced ja ready (mõlemal)
     ShowReady();
-
+    printf("Showed that im ready\n");
     double *delaysCalculated = RegisterBlinks(); 
     
     int numOfValidCalculations = 0;

@@ -10,20 +10,17 @@
 #include <string.h>
 #include "display.h"
 
-#define GPIO_CHIP "/dev/gpiochip0"
-#define GPIO_READY_LED 24
-
 int value = 0;
 
-struct port* openPort(int portPin, char* debugName, bool inputOutput) {
+struct port* openPort(int lineNumber, char* debugName, bool inputOutput) {
     struct port* newPort = (struct port*) malloc(sizeof(struct port));
     if (newPort == NULL) {
         perror("Memory allocation failed");
         return NULL;
     }
 
-    // Open GPIO chip
-    newPort->chip = gpiod_chip_open_by_number((unsigned)portPin);
+    // Open GPIO chip by number (e.g., 0 for /dev/gpiochip0)
+    newPort->chip = gpiod_chip_open(GPIO_CHIP);
     if (!newPort->chip) {
         perror("Open GPIO chip failed");
         free(newPort);
@@ -31,7 +28,7 @@ struct port* openPort(int portPin, char* debugName, bool inputOutput) {
     }
 
     // Get GPIO line
-    newPort->line = gpiod_chip_get_line(newPort->chip, (unsigned)portPin);
+    newPort->line = gpiod_chip_get_line(newPort->chip, lineNumber);
     if (!newPort->line) {
         perror("Get GPIO line failed");
         gpiod_chip_close(newPort->chip);
@@ -39,27 +36,20 @@ struct port* openPort(int portPin, char* debugName, bool inputOutput) {
         return NULL;
     }
 
-    // Request line as output
-    if (inputOutput)
-	{
-		int lineRequestReturn = gpiod_line_request_input(newPort->line, debugName);
-		if (lineRequestReturn < 0) {
-			perror("Request line as output failed");
-			gpiod_chip_close(newPort->chip);
-			free(newPort);
-			return NULL;
-		}
-	}
-	else
-	{
-		int lineRequestReturn = gpiod_line_request_output(newPort->line, debugName, 0);
-		if (lineRequestReturn < 0) {
-			perror("Request line as output failed");
-			gpiod_chip_close(newPort->chip);
-			free(newPort);
-			return NULL;
-		}
-	}
+    // Request line based on inputOutput flag
+    int lineRequestReturn;
+    if (inputOutput) {
+        lineRequestReturn = gpiod_line_request_input(newPort->line, debugName);
+    } else {
+        lineRequestReturn = gpiod_line_request_output(newPort->line, debugName, 0);
+    }
+
+    if (lineRequestReturn < 0) {
+        perror("Request line failed");
+        gpiod_chip_close(newPort->chip);
+        free(newPort);
+        return NULL;
+    }
 
     return newPort;
 }
@@ -145,9 +135,8 @@ void *readButtonState(void* arg) {
 }
 
 void ShowReady(void)
-{   
-    struct args_port* args = (struct args_port*) args;
-    struct port *openedPort = openPort(GPIO_READY_LED, "GPIO PIN 23", true);
+{  
+    struct port *openedPort = openPort(GPIO_READY_LED, "GPIO PIN 23", false);
 
     if (openedPort == NULL) {
         return;

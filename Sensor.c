@@ -11,13 +11,14 @@
 double* RegisterBlinks()
 {
     struct args_port* args = (struct args_port*) args;
-    struct port *openedPort = openPort(GPIO_PIN_LED, "GPIO PIN 22", false);
+    struct port *openedPort = openPort(GPIO_PIN_LED, "GPIO PIN 22", true);
 
     // Wait for the first blink
     while (gpiod_line_get_value(openedPort->line) == 0) 
     {
         preciseSleep(0.1); 
     }
+    printf("Got the first blink\n");
     struct timespec currentTime;
     // Get the current time with high precision
 
@@ -54,11 +55,11 @@ double* RegisterBlinks()
             secondsToWait += 1; // Add a second since we have to wait for the full second
         }   
         
-        totalSecondsToWait = (double)secondsToWait + ((double)nanosecondsToWait / 1e9);
+        totalSecondsToWait = (double)secondsToWait + (double)currentSeconds + ((double)nanosecondsToWait / 1e9);
         
     }
     
-    
+    printf("waiting for %9f\n", totalSecondsToWait);
     preciseSleep(totalSecondsToWait);
     
     struct timespec senderStartTime; 

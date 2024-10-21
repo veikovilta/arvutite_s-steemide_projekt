@@ -1,7 +1,8 @@
 #ifndef HELPERFUNCTIONS_H
 #define HELPERFUNCTIONS_H
 
-
+#define GPIO_READY_LED 23
+#define GPIO_CHIP "/dev/gpiochip0"
 
 struct port 
 {
