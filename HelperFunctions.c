@@ -143,7 +143,7 @@ void ShowReady(void)
     }
     // Display LED for 1 minute
     gpiod_line_set_value(openedPort->line, 1);
-    preciseSleep(60);
+    preciseSleep(5);
 
     // Turn off the LED and clean up
     gpiod_line_set_value(openedPort->line, 0);

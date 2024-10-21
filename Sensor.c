@@ -8,17 +8,19 @@
 #include "display.h"
 
 
-double* RegisterBlinks()
+double* RegisterBlinks(int i2cHandle)
 {
-    struct args_port* args = (struct args_port*) args;
+    fflush(stdout);
     struct port *openedPort = openPort(GPIO_PIN_LED, "GPIO PIN 22", true);
-
     // Wait for the first blink
+    
     while (gpiod_line_get_value(openedPort->line) == 0) 
     {
-        preciseSleep(0.1); 
+        preciseSleep(0.1);  
     }
+
     printf("Got the first blink\n");
+    fflush(stdout);
     struct timespec currentTime;
     // Get the current time with high precision
 
@@ -58,8 +60,13 @@ double* RegisterBlinks()
         totalSecondsToWait = (double)secondsToWait + (double)currentSeconds + ((double)nanosecondsToWait / 1e9);
         
     }
+    char numberStr[20] = "";
+    char message[100] = ""; 
+    sprintf(numberStr, "%.5f", totalSecondsToWait);
+    snprintf(message, sizeof(message), "Sleeping for: %5s", numberStr);
     
-    printf("waiting for %9f\n", totalSecondsToWait);
+    oledWriteText(i2cHandle, 0, 2, message);
+    printf("waiting for %.4f\n", totalSecondsToWait);
     preciseSleep(totalSecondsToWait);
     
     struct timespec senderStartTime; 
@@ -67,7 +74,8 @@ double* RegisterBlinks()
     clock_gettime(CLOCK_REALTIME, &senderStartTime);
         
     struct timespec timestamps[BLINK_COUNT]; 
-    
+    oledClear(i2cHandle);
+    oledWriteText(i2cHandle, 0, 2, "Got: ");
     // Read the LED blinks and record timestamps
     for (int i = 0; i < BLINK_COUNT; i++) {
         // Wait for the GPIO pin to go HIGH
@@ -76,18 +84,21 @@ double* RegisterBlinks()
             preciseSleep(0.001);  //vb checkimis sleep ajad ära võtma?
                                   // sealt mingi kadu ju
         }
+        sprintf(numberStr, "%5d ", i);
+        printf("Read timestamp : %5d\n", i);
+        oledWriteText(i2cHandle, 0, 4, numberStr);
         // Get current time with high precision
         clock_gettime(CLOCK_REALTIME, &timestamps[i]);
 
         // Wait for the GPIO pin to go LOW
-        while (gpiod_line_get_value(openedPort->line) ==1) 
+        while (gpiod_line_get_value(openedPort->line) == 1) 
         {
             preciseSleep(0.001);
         }
     }
-    
+    printf("Got all data\n");
 	double *delaysCalculated = calculateDelays(timestamps, senderStartTime);
-
+    printf("Calculated delays\n");
     gpiod_line_release(openedPort->line);
     gpiod_chip_close(openedPort->chip);
     free(openedPort);

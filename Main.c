@@ -61,7 +61,7 @@ int main(void)
     int minutes = 1;
     while(1)
     {
-        preciseSleep(60);
+        preciseSleep(5);
     
         if (CheckSync(i2cHandle) == 0)
         {
@@ -80,7 +80,7 @@ int main(void)
         
         minutes++;
 
-        if (minutes == 11)
+        if (minutes == 132)
         {
             oledClear(i2cHandle);
             // Display a message on the OLED
@@ -102,8 +102,8 @@ int main(void)
     //lediga näitama et on synced ja ready (mõlemal)
     ShowReady();
     printf("Showed that im ready\n");
-    double *delaysCalculated = RegisterBlinks(); 
-    
+    double *delaysCalculated = RegisterBlinks(i2cHandle); 
+    printf("Calculated delays and returned\n");
     int numOfValidCalculations = 0;
     double averageDelay = calculateAverage(delaysCalculated, &numOfValidCalculations); 
     
@@ -112,12 +112,13 @@ int main(void)
     
     oledClear(i2cHandle);
     oledWriteText(i2cHandle, 0, 0, averageDelayStr);
+    printf("%s\n",averageDelayStr);
     
     printDelaysToFile("delays.txt", delaysCalculated, numOfValidCalculations, averageDelay);
 
     // TODO exit neile funktsioonidele vaja juurde teha
     //pthread_join(buttonThread, NULL);
-
+    preciseSleep(4.0);
     oledClear(i2cHandle);
     oledWriteText(i2cHandle, 0, 0, "Program finished");
     oledWriteText(i2cHandle, 0, 2, "Shutting Down");
@@ -127,6 +128,7 @@ int main(void)
 
     if (system ("sudo shutdown -h now") != 0) {
         perror("Failed to shutdown");
+        system("sudo shutdown");
     }
     return 0;
 }
