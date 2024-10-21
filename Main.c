@@ -124,11 +124,15 @@ int main(void)
         totalSecondsToWait = (double)secondsToWait + ((double)nanosecondsToWait / 1e9);
     }
     
-    printf("Secods to wait %.2f", totalSecondsToWait);
+    printf("\nSecods to wait %.2f\n", totalSecondsToWait);
     fflush(stdout);
     // Call preciseSleep with the total time to wait
     preciseSleep(totalSecondsToWait);
     
+    printf("Start blinking\n");
+    fflush(stdout);
+    
+    ledBlinking20(&ledBlinkPort);
     
     // Wait for the threads to complete
     // TODO exit neile funktsioonidele vaja juurde teha

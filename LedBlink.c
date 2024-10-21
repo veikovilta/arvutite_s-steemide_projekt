@@ -8,28 +8,26 @@
 #include <gpiod.h>
 #include <time.h>
 
-void* ledBlinking20(void* arg) {
-    struct args_port* args = (struct args_port*) arg;
-    struct port *openedPort = openPort(args->portPin, args->debugName, args->inputOutput);
+void ledBlinking20(struct args_port* args)
+{
+    struct port *openedPort = openPort(args->portPin, args->debugName, false); // 'true' for output
 
-    if (openedPort == NULL) {
-        return NULL;
-    }
-
-    int i;
-    for (i = 0; i < 60; i++) {
+    for (int i = 0; i < 20; i++) {
+        // Turn the LED on
         gpiod_line_set_value(openedPort->line, 1);
-        preciseSleep(1);
+        printf("Blink number: %d\n", i + 1); // Print the current blink count
+        fflush(stdout);
+        preciseSleep(1); // Sleep for 1 second
+        
+        // Turn the LED off
         gpiod_line_set_value(openedPort->line, 0);
-        preciseSleep(2);
+        preciseSleep(1); // Sleep for 2 seconds
     }
 
-    gpiod_line_release(openedPort->line);
-    gpiod_chip_close(openedPort->chip);
-    free(openedPort);
-
-    return NULL;
+    // Clean up
+    ClosePort(openedPort);
 }
+
 
 //~ void* ledBlinkOnce_thread(void* arg) {
     //~ struct args_port* args = (struct args_port*) arg;

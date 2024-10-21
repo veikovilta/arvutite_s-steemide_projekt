@@ -13,7 +13,7 @@
 
 #define GPIO_LINE_MAIN_BLINK 17 
 
-void* ledBlinking20(void* arg);
+void ledBlinking20(struct args_port* args);
 //void* ledBlinkOnce(void* arg);
 struct timespec ledBlinkOnce(struct args_port *newPort);
 
