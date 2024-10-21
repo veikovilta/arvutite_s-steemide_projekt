@@ -15,74 +15,131 @@
 #include "LedBlink.h"
 
 
+#define WAIT_TIME_BEFORE_NEXT_MINUTE 10
+
 int main(void)
 {
     //väljakutse chrony start
     // Correct this command
-    system("sudo chronyc systemctl start");
-    printf("1st check");
+    //~ system("sudo chronyc systemctl start");
+    //~ printf("1st check");
 
 
-    int i2cHandle = i2cInit("/dev/i2c-1", OLED_I2C_ADDR);
-    if (i2cHandle < 0) return -1; // Exit if failed
-        printf("2nd check");
+    //~ int i2cHandle = i2cInit("/dev/i2c-1", OLED_I2C_ADDR);
+    //~ if (i2cHandle < 0) return -1; // Exit if failed
+        //~ printf("2nd check");
 
-    oledInit(i2cHandle); // Initialize the OLED
-    oledClear(i2cHandle); // Clear the display
+    //~ oledInit(i2cHandle); // Initialize the OLED
+    //~ oledClear(i2cHandle); // Clear the display
 
     // eraldi thread enne käima mis checkib nuppu
-    pthread_t buttonThread;
-    struct args_port args;
+    //~ pthread_t buttonThread;
+    //~ struct args_port args;
 
-    // Initialize thread arguments
-    args.portPin = GPIO_BUTTON; // Set GPIO port number
-    args.debugName = "InputButton";  // Set debug name
-	args.inputOutput = false;
+    //~ // Initialize thread arguments
+    //~ args.portPin = GPIO_BUTTON; // Set GPIO port number
+    //~ args.debugName = "InputButton";  // Set debug name
+	//~ args.inputOutput = false;
 
-    if(pthread_create(&buttonThread, NULL, readButtonState, (void*)&args) < 0)
-    {
-        perror("Failed to create thread");
-        oledClear(i2cHandle);
-        oledWriteText(i2cHandle, 0, 0, "ERROR Failed to create thread");
-        oledWriteText(i2cHandle, 2, 0, "Shutting Down");
-        system ("sudo shutdown -h now"); 
-        return 1;
-    }
+    //~ if(pthread_create(&buttonThread, NULL, debounceButtonState, (void*)&args) < 0)
+    //~ {
+        //~ perror("Failed to create thread");
+        //~ oledClear(i2cHandle);
+        //~ oledWriteText(i2cHandle, 0, 0, "ERROR Failed to create thread");
+        //~ oledWriteText(i2cHandle, 2, 0, "Shutting Down");
+        //~ system ("sudo shutdown -h now"); 
+        //~ return 1;
+    //~ }
 
     // teeb 60 sekundilist checki kui hea kell on
     // 10min vähemalt
     int minutes = 0;
+    
+    printf("Starting syrcronization"); 
+    fflush(stdout);
     while(1)
     {
         preciseSleep(5);
-    
-        if (CheckSync(i2cHandle) == 0)
+        int i = 5; 
+        //CheckSync(i2cHandle) == 0
+        if ( CheckSync() == 0)
         {
+            printf("hello\n");
+            fflush(stdout);
             break;
         }
+        else
+        {
+            printf("notsynced\n");
+            fflush(stdout);
+        }
     }
-
+    
+    printf("hello 2\n");
+    fflush(stdout);
+    
     //lediga näitama et on cynced ja ready (mõlemal)
     ShowReady();
 
 	struct args_port ledBlinkPort; 
-	
+
 	ledBlinkPort.portPin = GPIO_LINE_MAIN_BLINK; 
 	ledBlinkPort.debugName = "ledBlink";
 	ledBlinkPort.inputOutput = false;
 
-	struct timespec firstblink = ledBlink()
+	struct timespec firstblink = ledBlinkOnce(&ledBlinkPort);
 
+    // Print the time
+    printf("LED blink time: %ld seconds and %ld nanoseconds\n", 
+           (long)firstblink.tv_sec, (long)firstblink.tv_nsec);
+    fflush(stdout);
+    
+        // Use firstblink to calculate waiting time
+    long currentSeconds = firstblink.tv_sec % 60;
+    long currentNanoseconds = firstblink.tv_nsec;
+    long nanosecondsToWait = 0;
+    long secondsToWait = 0;
+    double totalSecondsToWait = 0;
+
+    // If the seconds are less than 10, wait until the next full minute
+    if (currentSeconds < WAIT_TIME_BEFORE_NEXT_MINUTE) {
+        // Calculate how many seconds are left until the next full minute
+        secondsToWait = 60 - currentSeconds; // Corrected calculation
+        nanosecondsToWait = 1000000000 - currentNanoseconds;
+
+        // Adjust the seconds to wait if we are already in the current second
+        if (nanosecondsToWait < 1000000000) {
+            secondsToWait += 1; // Add a second since we have to wait for the full second
+        }
+        
+        totalSecondsToWait = (double)secondsToWait + ((double)nanosecondsToWait / 1e9);
+    } else {
+        nanosecondsToWait = 1000000000 - currentNanoseconds;
+
+        // Adjust the seconds to wait if we are already in the current second
+        if (nanosecondsToWait < 1000000000) {
+            secondsToWait += 1; // Add a second since we have to wait for the full second
+        }   
+        
+        totalSecondsToWait = (double)secondsToWait + ((double)nanosecondsToWait / 1e9);
+    }
+    
+    printf("Secods to wait %.2f", totalSecondsToWait);
+    fflush(stdout);
+    // Call preciseSleep with the total time to wait
+    preciseSleep(totalSecondsToWait);
+    
+    
     // Wait for the threads to complete
     // TODO exit neile funktsioonidele vaja juurde teha
-    pthread_join(buttonThread, NULL);
+    //pthread_join(buttonThread, NULL);
 
-    oledClear(i2cHandle);
-    oledWriteText(i2cHandle, 0, 0, "Program finished");
-    oledWriteText(i2cHandle, 2, 0, "Shutting Down");
+    //~ oledClear(i2cHandle);
+    //~ oledWriteText(i2cHandle, 0, 0, "Program finished");
+    //~ oledWriteText(i2cHandle, 2, 0, "Shutting Down");
 
-    close(i2cHandle);
-    system ("sudo shutdown -h now");
+    //~ close(i2cHandle);
+    //system ("sudo shutdown -h now");
     return 0;
 }
 

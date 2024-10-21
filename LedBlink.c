@@ -49,17 +49,12 @@ void* ledBlinking20(void* arg) {
     //~ free(openedPort);
 
     //~ return NULL;
-//~ }
+//~
 
-timespec* ledBlinkOnce(struct* args_port newPort) {
+struct timespec ledBlinkOnce(struct args_port *newPort) {
     // Open the port for controlling the LED
-    struct port *openedPort = openPort(newPort->portPin, newPort->debugName, newPort->inputOutput); // 'true' indicates output
-	struct timespec blinkTime;
-
-    if (openedPort == NULL) {
-        printf("Failed to open port for LED\n");
-        return;
-    }
+    struct port *openedPort = openPort(newPort->portPin, newPort->debugName, false); // 'true' for output
+    static struct timespec blinkTime; // Use static to return a pointer safely
 
     // Turn the LED on
     gpiod_line_set_value(openedPort->line, 1);
@@ -69,12 +64,9 @@ timespec* ledBlinkOnce(struct* args_port newPort) {
     // Turn the LED off
     gpiod_line_set_value(openedPort->line, 0);
 
-    // Clean up
-    gpiod_line_release(openedPort->line);
-    gpiod_chip_close(openedPort->chip);
-    free(openedPort);
+    ClosePort(openedPort); 
     
-    return &blinkTime;
+    return blinkTime; // Return the address of blinkTime
 }
 
 /*int main() {
@@ -82,8 +74,7 @@ timespec* ledBlinkOnce(struct* args_port newPort) {
     struct thread_args args;
 
     // Initialize thread arguments
-    args.port = 15;                 // Set GPIO port number
-    args.debugName = "LEDController";  // Set debug name
+    args.port = 15;                 // Set GPIO port number    args.debugName = "LEDController";  // Set debug name
 
     // Create a thread with the port number and debug name
     if (pthread_create(&thread, NULL, ledBlinking, (void*)&args) != 0) {

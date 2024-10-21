@@ -10,16 +10,15 @@
 #include <string.h>
 #include "display.h"
 
-
-struct port* openPort(int portPin, char* debugName, bool inputOutput) {
+struct port* openPort(int lineNumber, char* debugName, bool inputOutput) {
     struct port* newPort = (struct port*) malloc(sizeof(struct port));
     if (newPort == NULL) {
         perror("Memory allocation failed");
         return NULL;
     }
 
-    // Open GPIO chip
-    newPort->chip = gpiod_chip_open_by_number(portPin);
+    // Open GPIO chip by number (e.g., 0 for /dev/gpiochip0)
+    newPort->chip = gpiod_chip_open(GPIO_CHIP);
     if (!newPort->chip) {
         perror("Open GPIO chip failed");
         free(newPort);
@@ -27,7 +26,7 @@ struct port* openPort(int portPin, char* debugName, bool inputOutput) {
     }
 
     // Get GPIO line
-    newPort->line = gpiod_chip_get_line(newPort->chip, portPin);
+    newPort->line = gpiod_chip_get_line(newPort->chip, lineNumber);
     if (!newPort->line) {
         perror("Get GPIO line failed");
         gpiod_chip_close(newPort->chip);
@@ -35,31 +34,23 @@ struct port* openPort(int portPin, char* debugName, bool inputOutput) {
         return NULL;
     }
 
-    // Request line as output
-    if (inputOutput)
-	{
-		int lineRequestReturn = gpiod_line_request_input(newPort->line, debugName);
-		if (lineRequestReturn < 0) {
-			perror("Request line as output failed");
-			gpiod_chip_close(newPort->chip);
-			free(newPort);
-			return NULL;
-		}
-	}
-	else
-	{
-		int lineRequestReturn = gpiod_line_request_output(newPort->line, debugName, 0);
-		if (lineRequestReturn < 0) {
-			perror("Request line as output failed");
-			gpiod_chip_close(newPort->chip);
-			free(newPort);
-			return NULL;
-		}
-	}
+    // Request line based on inputOutput flag
+    int lineRequestReturn;
+    if (inputOutput) {
+        lineRequestReturn = gpiod_line_request_input(newPort->line, debugName);
+    } else {
+        lineRequestReturn = gpiod_line_request_output(newPort->line, debugName, 0);
+    }
+
+    if (lineRequestReturn < 0) {
+        perror("Request line failed");
+        gpiod_chip_close(newPort->chip);
+        free(newPort);
+        return NULL;
+    }
 
     return newPort;
 }
-
 
 void preciseSleep(double seconds) {
     struct timespec req, rem;
@@ -157,19 +148,88 @@ int debounceButtonState(struct args_port* args) {
     return value;
 }
 
+void ClosePort(struct port* openedPort)
+{
+    gpiod_line_release(openedPort->line);
+    gpiod_chip_close(openedPort->chip);
+    free(openedPort);
+}
+
 
 void ShowReady(void)
 {
     struct args_port* args = (struct args_port*) args;
-    struct port *openedPort = openPort(GPIO_READY_LED, "GPIO PIN 23", true);
-
+    struct port *openedPort = openPort(GPIO_READY_LED, "GPIO PIN 23", false);
+    printf("Shoready\n"); 
     //display-ime 1 minut
     gpiod_line_set_value(openedPort->line, 1);
-    preciseSleep(60);
+    preciseSleep(10);
+    gpiod_line_set_value(openedPort->line, 0);
+    ClosePort(openedPort);
 }
 
-int CheckSync(int i2cHandle)
-{
+//~ int CheckSync(int i2cHandle)
+//~ {
+    //~ FILE *fp;
+    //~ double systemOffset = 0.0;
+    //~ char buffer[200];
+    //~ char numberStr[20] = "";
+    //~ char message[100] = ""; 
+
+    //~ // Run the "chronyc tracking" command and open a pipe to read the output
+    //~ fp = popen("chronyc tracking", "r");
+    //~ if (fp == NULL) 
+    //~ {
+        //~ oledClear(i2cHandle); // Clear the display
+        //~ oledWriteText(i2cHandle, 0, 0, "Failed to run chronyc command.");
+        //~ oledWriteText(i2cHandle, 2, 0, "Shutting Down");
+        //~ return 1;
+    //~ }
+
+    //~ // Parse the output line by line
+    //~ while (fgets(buffer, sizeof(buffer), fp) != NULL) 
+    //~ {
+        //~ // Look for the line that contains "System time" to get the offset
+        //~ if (strstr(buffer, "System time") != NULL) 
+        //~ {
+            //~ // Extract the offset value (it will be the second value in the line)
+            //~ sscanf(buffer, "System time     : %lf seconds", &systemOffset);
+            //~ break;
+        //~ }
+    //~ }
+
+    //~ // Close the pipe
+    //~ pclose(fp);
+
+    //~ // Output the system offset to the user
+    //~ sprintf(numberStr, "%.9f", systemOffset);
+    //~ snprintf(message, sizeof(message), "System time offset: %9s", numberStr);
+
+
+    
+    //~ oledClear(i2cHandle);
+    //~ // Display a message on the OLED
+    //~ oledWriteText(i2cHandle, 0, 0, message);
+
+    //~ //printf("System time offset: %.9f \n", systemOffset);
+
+    //~ // Check synchronization status
+    //~ // piiriks 0.1 ms
+    //~ if (systemOffset < 0.0001 && systemOffset > -0.0001) 
+    //~ {
+        //~ oledWriteText(i2cHandle, 2, 0, "System clock is synchronized");
+        //~ return 0;
+    //~ } 
+    //~ else 
+    //~ {
+        //~ oledWriteText(i2cHandle, 2, 0, "System clock is not synchronized");
+    //~ }
+
+    //~ return 1;
+//~ }
+
+
+int CheckSync() {
     FILE *fp;
     double systemOffset = 0.0;
     char buffer[200];
@@ -178,20 +238,15 @@ int CheckSync(int i2cHandle)
 
     // Run the "chronyc tracking" command and open a pipe to read the output
     fp = popen("chronyc tracking", "r");
-    if (fp == NULL) 
-    {
-        oledClear(i2cHandle); // Clear the display
-        oledWriteText(i2cHandle, 0, 0, "Failed to run chronyc command.");
-        oledWriteText(i2cHandle, 2, 0, "Shutting Down");
+    if (fp == NULL) {
+        printf("Failed to run chronyc command.\n");
         return 1;
     }
 
     // Parse the output line by line
-    while (fgets(buffer, sizeof(buffer), fp) != NULL) 
-    {
+    while (fgets(buffer, sizeof(buffer), fp) != NULL) {
         // Look for the line that contains "System time" to get the offset
-        if (strstr(buffer, "System time") != NULL) 
-        {
+        if (strstr(buffer, "System time") != NULL) {
             // Extract the offset value (it will be the second value in the line)
             sscanf(buffer, "System time     : %lf seconds", &systemOffset);
             break;
@@ -205,24 +260,16 @@ int CheckSync(int i2cHandle)
     sprintf(numberStr, "%.9f", systemOffset);
     snprintf(message, sizeof(message), "System time offset: %9s", numberStr);
 
-
-    
-    oledClear(i2cHandle);
-    // Display a message on the OLED
-    oledWriteText(i2cHandle, 0, 0, message);
-
-    //printf("System time offset: %.9f \n", systemOffset);
+    // Print the message to console
+    printf("%s\n", message);
 
     // Check synchronization status
-    // piiriks 0.1 ms
-    if (systemOffset < 0.0001 && systemOffset > -0.0001) 
-    {
-        oledWriteText(i2cHandle, 2, 0, "System clock is synchronized");
+    // Threshold: 0.1 ms
+    if (systemOffset < 0.0001 && systemOffset > -0.0001) {
+        printf("System clock is synchronized\n");
         return 0;
-    } 
-    else 
-    {
-        oledWriteText(i2cHandle, 2, 0, "System clock is not synchronized");
+    } else {
+        printf("System clock is not synchronized\n");
     }
 
     return 1;
