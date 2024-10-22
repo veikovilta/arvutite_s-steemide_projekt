@@ -30,35 +30,19 @@ double* RegisterBlinks(int i2cHandle)
     long currentSeconds = currentTime.tv_sec % 60;
     long currentNanoseconds = currentTime.tv_nsec;
     long nanosecondsToWait = 0;
-    long secondsToWait= 0;
+    long secondsToWait= 60 - currentSeconds;
     double totalSecondsToWait = 0;
     // If the seconds are less than 10, wait until the next full minute
-    if (currentSeconds < WAIT_TIME_BEFORE_NEXT_MINUTE) 
+    if (secondsToWait < WAIT_TIME_BEFORE_NEXT_MINUTE) 
     {
-        // Calculate how many seconds are left until the next full minute
-        secondsToWait = 60 + currentSeconds;
+        secondsToWait += 60;
         nanosecondsToWait = 1000000000 - currentNanoseconds;
-        
-        // Adjust the seconds to wait if we are already in the current second
-        if (nanosecondsToWait < 1000000000) 
-        {
-            secondsToWait += 1; // Add a second since we have to wait for the full second
-        }
-        
         totalSecondsToWait = (double)secondsToWait + ((double)nanosecondsToWait / 1e9);
-        
     }
     else 
     {
         nanosecondsToWait = 1000000000 - currentNanoseconds;
-        // Adjust the seconds to wait if we are already in the current second
-        if (nanosecondsToWait < 1000000000) 
-        {
-            secondsToWait += 1; // Add a second since we have to wait for the full second
-        }   
-        
-        totalSecondsToWait = (double)secondsToWait + (double)currentSeconds + ((double)nanosecondsToWait / 1e9);
-        
+        totalSecondsToWait = (double)secondsToWait + ((double)nanosecondsToWait / 1e9);
     }
     char numberStr[20] = "";
     char message[100] = ""; 
