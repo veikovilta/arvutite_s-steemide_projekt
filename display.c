@@ -67,7 +67,7 @@ void oledInit(int i2cHandle) {
 
 // Set OLED cursor
 void oledSetCursor(int i2cHandle, int x, int y) {
-    oledWriteCommand(i2cHandle, 0xB0 + y); // Set page start address
+    oledWriteCommand(i2cHandle, 0xB0 + (uint8_t)y); // Set page start address
     oledWriteCommand(i2cHandle, 0x00 + (x & 0x0F)); // Lower column address
     oledWriteCommand(i2cHandle, 0x10 + ((x >> 4) & 0x0F)); // Higher column address
 }

@@ -67,6 +67,7 @@ double* RegisterBlinks(int i2cHandle)
     
     oledWriteText(i2cHandle, 0, 2, message);
     printf("waiting for %.4f\n", totalSecondsToWait);
+    fflush(stdout);
     preciseSleep(totalSecondsToWait);
     
     struct timespec senderStartTime; 

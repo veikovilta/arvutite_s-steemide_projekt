@@ -10,7 +10,6 @@
 #include <string.h>
 #include "display.h"
 
-int value = 0;
 
 struct port* openPort(int lineNumber, char* debugName, bool inputOutput) {
     struct port* newPort = (struct port*) malloc(sizeof(struct port));
@@ -28,7 +27,7 @@ struct port* openPort(int lineNumber, char* debugName, bool inputOutput) {
     }
 
     // Get GPIO line
-    newPort->line = gpiod_chip_get_line(newPort->chip, lineNumber);
+    newPort->line = gpiod_chip_get_line(newPort->chip, (unsigned)lineNumber);
     if (!newPort->line) {
         perror("Get GPIO line failed");
         gpiod_chip_close(newPort->chip);
@@ -59,8 +58,8 @@ void preciseSleep(double seconds) {
     struct timespec req, rem;
 
     // Break down the seconds into whole seconds and nanoseconds
-    req.tv_sec = (time_t)seconds;                     // Get the whole seconds part
-    req.tv_nsec = (long)((seconds - req.tv_sec) * 1e9); // Convert the fractional part to nanoseconds
+    req.tv_sec = (time_t)seconds; // Get the whole seconds part
+    req.tv_nsec = (long)((seconds - (double)req.tv_sec) * 1e9); // Convert the fractional part to nanoseconds
 
     int ret = clock_nanosleep(CLOCK_REALTIME, 0, &req, &rem);
 
@@ -75,6 +74,7 @@ void preciseSleep(double seconds) {
     }
 }
 
+//fix it add debouncing and say when to use
 void* readButtonState_thread(void* arg) {
     struct args_port* args = (struct args_port*) arg;
     struct port *openedPort = openPort(args->portPin, args->debugName, args->inputOutput);
@@ -84,18 +84,16 @@ void* readButtonState_thread(void* arg) {
     }
 
     while (1) {
-        int value3 = gpiod_line_get_value(openedPort->line);
-        if (value3 < 0) {
+        int value = gpiod_line_get_value(openedPort->line);
+        if (value < 0) {
             perror("Failed to read button state");
             break; // Exit the loop on error
         }
 
-        if (value3 == 1) {
+        if (value == 1) {
             printf("Button is pressed!\n");
-            value = 1;
         } else {
             printf("Button is not pressed.\n");
-            value = 0;
         }
 
         usleep(200000);
@@ -108,30 +106,55 @@ void* readButtonState_thread(void* arg) {
     return NULL;
 }
 
-void *readButtonState(void* arg) {
-    struct args_port *args = (struct args_port*) arg;
+int debounceButtonState(struct args_port* args) {
+    
     struct port *openedPort = openPort(args->portPin, args->debugName, args->inputOutput);
 
     if (openedPort == NULL) {
         fprintf(stderr, "Failed to open port.\n");
-        return NULL;
+        return -1;
     }
 
-    int value2 = gpiod_line_get_value(openedPort->line);
-    if (value2 < 0) {
-        perror("Failed to read button state");
-        gpiod_line_release(openedPort->line);
-        gpiod_chip_close(openedPort->chip);
-        free(openedPort);
-        return NULL;
+    int stableCount = 0;
+    const int debounceThreshold = 3; // Require 3 stable reads
+    const int delayMs = 50; // 50 ms delay between reads
+    int value = 0;
+
+    while(1) {	
+        value = gpiod_line_get_value(openedPort->line);
+        if (value < 0) {
+            perror("Failed to read button state");
+            break; // Exit the loop on error
+        }
+
+        if (value == 1) {
+            stableCount++;
+        } else {
+            stableCount = 0;
+        }
+
+        if (stableCount >= debounceThreshold) {
+            printf("Button is pressed!\n");
+            break;
+        } else {
+            printf("Button is not pressed.\n");
+        }
+
+        usleep(delayMs * 1000); // 50 ms delay
     }
 
     gpiod_line_release(openedPort->line);
     gpiod_chip_close(openedPort->chip);
     free(openedPort);
 
-    value = value2;
-    return NULL;
+    return value;
+}
+
+void ClosePort(struct port* openedPort)
+{
+    gpiod_line_release(openedPort->line);
+    gpiod_chip_close(openedPort->chip);
+    free(openedPort);
 }
 
 void ShowReady(void)

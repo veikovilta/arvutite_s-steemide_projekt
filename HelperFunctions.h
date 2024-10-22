@@ -17,6 +17,7 @@ struct args_port
     bool inputOutput; // input True, Output False
 };
 
+void ClosePort(struct port* openedPort);
 struct port* openPort(int portPin, char* debugName, bool inputOutput);
 void preciseSleep(double seconds);
 void *readButtonState(void* args);

@@ -1,6 +1,6 @@
 Delays:
 Delay 1: 0.77
-Delay 2: 3459054965.30
-Delay 3: 0.19
+Delay 2: 0.00
+Delay 3: 0.00
 
-Average Delay: 1153018322.09
+Average Delay: 1153058282.17

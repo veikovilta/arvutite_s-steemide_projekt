@@ -30,12 +30,11 @@ int main(void)
     oledInit(i2cHandle); // Initialize the OLED
     oledClear(i2cHandle); // Clear the display
     
-    /*
     // eraldi thread enne käima mis checkib nuppu
     pthread_t buttonThread;
     struct args_port args;
 
-    // Initialize thread arguments
+    //Initialize thread arguments
     args.portPin = GPIO_BUTTON; // Set GPIO port number
     args.debugName = "InputButton";  // Set debug name
 	args.inputOutput = false;
@@ -46,7 +45,7 @@ int main(void)
         oledClear(i2cHandle);
         oledWriteText(i2cHandle, 0, 0, "ERROR Failed to create thread");
         oledWriteText(i2cHandle, 2, 0, "Shutting Down");
-        
+        preciseSleep(4);
         if (system ("sudo shutdown -h now") != 0) {
             perror("Failed to shutdown");
             oledClear(i2cHandle);
@@ -54,7 +53,7 @@ int main(void)
             // Handle the error or exit
         }
         return 1;
-    } */
+    } 
 
     // teeb 60 sekundilist checki kui hea kell on
     // 10min vähemalt
@@ -70,11 +69,10 @@ int main(void)
         else 
         {
             // kirjuta ekraanile et 60 sek ootama veel
-            sprintf(numberStr, "%d", minutes);
-            snprintf(message, sizeof(message), "minutes waited : %s", numberStr);
+            sprintf(numberStr, "%d", minutes*5);
+            snprintf(message, sizeof(message), "seconds waited : %s", numberStr);
             printf("%s\n", message);
 
-            oledClear(i2cHandle);
             oledWriteText(i2cHandle, 0, 6, message);
         }
         
@@ -98,6 +96,8 @@ int main(void)
         }
         
     }
+    
+    oledClear(i2cHandle);
     printf("synced\n");
     //lediga näitama et on synced ja ready (mõlemal)
     ShowReady();
@@ -117,7 +117,7 @@ int main(void)
     printDelaysToFile("delays.txt", delaysCalculated, numOfValidCalculations, averageDelay);
 
     // TODO exit neile funktsioonidele vaja juurde teha
-    //pthread_join(buttonThread, NULL);
+    pthread_join(buttonThread, NULL);
     preciseSleep(4.0);
     oledClear(i2cHandle);
     oledWriteText(i2cHandle, 0, 0, "Program finished");
