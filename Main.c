@@ -94,40 +94,31 @@ int main(void)
            (long)firstblink.tv_sec, (long)firstblink.tv_nsec);
     fflush(stdout);
     
-        // Use firstblink to calculate waiting time
-    long currentSeconds = firstblink.tv_sec % 60;
-    long currentNanoseconds = firstblink.tv_nsec;
-    long nanosecondsToWait = 0;
-    long secondsToWait = 0;
-    double totalSecondsToWait = 0;
-
-    // If the seconds are less than 10, wait until the next full minute
-    if (currentSeconds < WAIT_TIME_BEFORE_NEXT_MINUTE) {
-        // Calculate how many seconds are left until the next full minute
-        secondsToWait = 60 - currentSeconds; // Corrected calculation
-        nanosecondsToWait = 1000000000 - currentNanoseconds;
-
-        // Adjust the seconds to wait if we are already in the current second
-        if (nanosecondsToWait < 1000000000) {
-            secondsToWait += 1; // Add a second since we have to wait for the full second
-        }
-        
-        totalSecondsToWait = (double)secondsToWait + ((double)nanosecondsToWait / 1e9);
-    } else {
-        nanosecondsToWait = 1000000000 - currentNanoseconds;
-
-        // Adjust the seconds to wait if we are already in the current second
-        if (nanosecondsToWait < 1000000000) {
-            secondsToWait += 1; // Add a second since we have to wait for the full second
-        }   
-        
-        totalSecondsToWait = (double)secondsToWait + ((double)nanosecondsToWait / 1e9);
-    }
-    
-    printf("\nSecods to wait %.2f\n", totalSecondsToWait);
+    printf("Checking if its less than 10sec to the next full minute\n");
     fflush(stdout);
-    // Call preciseSleep with the total time to wait
-    preciseSleep(totalSecondsToWait);
+    
+    
+    //if (60 - (firstblink.tv_sec % 60) <= 10)
+    //{
+        //preciseSleep(11);
+    //}
+    
+    printf("Waiting next minute\n");
+    fflush(stdout);
+    
+    struct timespec currentTime; 
+    
+    //while (1)
+    //{
+        //clock_gettime(CLOCK_REALTIME, &currentTime);
+        
+        //if ((currentTime.tv_sec % 60) == 0 && currentTime.tv_nsec < 1e6)
+        //{
+            //break;
+        //}
+        
+        //preciseSleep(0.0001);
+    //}
     
     printf("Start blinking\n");
     fflush(stdout);
@@ -226,3 +217,35 @@ int main() {
 
     return 0;
 }*/
+
+
+    //~ // Use firstblink to calculate waiting time
+    //~ long currentSeconds = firstblink.tv_sec % 60;
+    //~ long currentNanoseconds = firstblink.tv_nsec;
+    //~ long nanosecondsToWait = 0;
+    //~ long secondsToWait = 0;
+    //~ double totalSecondsToWait = 0;
+
+    //~ // If the seconds are less than 10, wait until the next full minute
+    //~ if (currentSeconds < WAIT_TIME_BEFORE_NEXT_MINUTE) {
+        //~ // Calculate how many seconds are left until the next full minute
+        //~ secondsToWait = 60 - currentSeconds; // Corrected calculation
+        //~ nanosecondsToWait = 1000000000 - currentNanoseconds;
+
+        //~ // Adjust the seconds to wait if we are already in the current second
+        //~ if (nanosecondsToWait < 1000000000) {
+            //~ secondsToWait += 1; // Add a second since we have to wait for the full second
+        //~ }
+        
+        //~ totalSecondsToWait = (double)secondsToWait + ((double)nanosecondsToWait / 1e9);
+    //~ } else {
+        //~ nanosecondsToWait = 1000000000 - currentNanoseconds;
+
+        //~ // Adjust the seconds to wait if we are already in the current second
+        //~ if (nanosecondsToWait < 1000000000) {
+            //~ secondsToWait += 1; // Add a second since we have to wait for the full second
+        //~ }   
+        
+        //~ totalSecondsToWait = (double)secondsToWait + (double)currentSeconds + ((double)nanosecondsToWait / 1e9);
+    //~ }
+    
