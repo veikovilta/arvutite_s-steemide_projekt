@@ -8,19 +8,17 @@
 #include "display.h"
 
 
-double* RegisterBlinks(int i2cHandle)
+double* RegisterBlinks()
 {
-    fflush(stdout);
-    struct port *openedPort = openPort(GPIO_PIN_LED, "GPIO PIN 22", true);
+    struct args_port* args = (struct args_port*) args;
+    struct port *openedPort = openPort(GPIO_PIN_LED, "GPIO PIN 22", false);
+
     // Wait for the first blink
-    
     while (gpiod_line_get_value(openedPort->line) == 0) 
     {
-        preciseSleep(0.1);  
+        preciseSleep(0.1); 
     }
-
-    printf("Got the first blink\n");
-    fflush(stdout);
+    
     struct timespec currentTime;
     // Get the current time with high precision
 
@@ -29,49 +27,37 @@ double* RegisterBlinks(int i2cHandle)
     // Extract the seconds part of the current time
     long currentSeconds = currentTime.tv_sec % 60;
     long currentNanoseconds = currentTime.tv_nsec;
-    long nanosecondsToWait = 0;
-    long secondsToWait= 60 - currentSeconds;
-    double totalSecondsToWait = 0;
-    // If the seconds are less than 10, wait until the next full minute
-    if (secondsToWait < WAIT_TIME_BEFORE_NEXT_MINUTE) 
+
+    if (60 - (currentSeconds) < 10)
     {
-        secondsToWait += 60;
-        nanosecondsToWait = 1000000000 - currentNanoseconds;
-        totalSecondsToWait = (double)secondsToWait + ((double)nanosecondsToWait / 1e9);
+        preciseSleep(11);
     }
-    else 
+    while (1)
     {
-        nanosecondsToWait = 1000000000 - currentNanoseconds;
-        totalSecondsToWait = (double)secondsToWait + ((double)nanosecondsToWait / 1e9);
+        clock_gettime(CLOCK_REALTIME, &currentTime);
+        
+        if ((currentTime.tv_sec % 60) == 0 && currentTime.tv_nsec < 1e5)
+        {
+            break;
+        }
+        
+        preciseSleep(0.0001);
     }
-    char numberStr[20] = "";
-    char message[100] = ""; 
-    sprintf(numberStr, "%.5f", totalSecondsToWait);
-    snprintf(message, sizeof(message), "Sleeping for: %5s", numberStr);
-    
-    oledWriteText(i2cHandle, 0, 2, message);
-    printf("waiting for %.4f\n", totalSecondsToWait);
-    fflush(stdout);
-    preciseSleep(totalSecondsToWait);
     
     struct timespec senderStartTime; 
     
     clock_gettime(CLOCK_REALTIME, &senderStartTime);
         
     struct timespec timestamps[BLINK_COUNT]; 
-    oledClear(i2cHandle);
-    oledWriteText(i2cHandle, 0, 2, "Got: ");
+    
     // Read the LED blinks and record timestamps
     for (int i = 0; i < BLINK_COUNT; i++) {
         // Wait for the GPIO pin to go HIGH
         while (gpiod_line_get_value(openedPort->line) == 0) 
         {
-            preciseSleep(0.001);  //vb checkimis sleep ajad ära võtma?
-                                  // sealt mingi kadu ju
+            preciseSleep(0.001);  
         }
-        sprintf(numberStr, "%5d ", i);
-        printf("Read timestamp : %5d\n", i);
-        oledWriteText(i2cHandle, 0, 4, numberStr);
+
         // Get current time with high precision
         clock_gettime(CLOCK_REALTIME, &timestamps[i]);
 
@@ -81,9 +67,9 @@ double* RegisterBlinks(int i2cHandle)
             preciseSleep(0.001);
         }
     }
-    printf("Got all data\n");
+
 	double *delaysCalculated = calculateDelays(timestamps, senderStartTime);
-    printf("Calculated delays\n");
+
     gpiod_line_release(openedPort->line);
     gpiod_chip_close(openedPort->chip);
     free(openedPort);
@@ -96,16 +82,7 @@ double* calculateDelays(const struct timespec *timestamps,
 	const struct timespec senderStartTime) 
 {
     double TimeFix = 0.0; // kui läheb syncist välja siis kasutan
-    
-    double* delaysCalculated = (double*)malloc(BLINK_COUNT * sizeof(double));
-    
-    // Check if malloc was successful
-    if (delaysCalculated == NULL) {
-        // Handle memory allocation failure
-        fprintf(stderr, "Memory allocation failed for delaysCalculated\n");
-        return NULL;
-    }
-    //double delaysCalculated[BLINK_COUNT];
+    double delaysCalculated[BLINK_COUNT];
 	
 	setArrayToZero(delaysCalculated);
 	
@@ -182,7 +159,7 @@ double calculateAverage(double *data, int *count)
 		if (data[i] != 0.0)
 		{
 			sum += data[i]; // Add the value to the sum
-			(*count)++; // Increment the count of values
+			*count++; // Increment the count of values
 		}
 	}
 
