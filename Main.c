@@ -29,12 +29,13 @@ int main(void)
 
     oledInit(i2cHandle); // Initialize the OLED
     oledClear(i2cHandle); // Clear the display
+    oledWriteText(i2cHandle, 0, 0, "Program started");
     
     // eraldi thread enne käima mis checkib nuppu
     pthread_t buttonThread;
     struct args_port args;
 
-    //Initialize thread arguments
+    // Initialize thread arguments
     args.portPin = GPIO_BUTTON; // Set GPIO port number
     args.debugName = "InputButton";  // Set debug name
 	args.inputOutput = false;
@@ -45,7 +46,7 @@ int main(void)
         oledClear(i2cHandle);
         oledWriteText(i2cHandle, 0, 0, "ERROR Failed to create thread");
         oledWriteText(i2cHandle, 2, 0, "Shutting Down");
-        preciseSleep(4);
+        
         if (system ("sudo shutdown -h now") != 0) {
             perror("Failed to shutdown");
             oledClear(i2cHandle);
@@ -68,67 +69,64 @@ int main(void)
         }
         else 
         {
-            // kirjuta ekraanile et 60 sek ootama veel
+            // kirjuta ekraanile et oodatud 5 sek
             sprintf(numberStr, "%d", minutes*5);
             snprintf(message, sizeof(message), "seconds waited : %s", numberStr);
             printf("%s\n", message);
 
-            oledWriteText(i2cHandle, 0, 6, message);
+            oledWriteText(i2cHandle, 0, 0, message);
         }
         
         minutes++;
 
-        if (minutes == 132)
+        // kui ei ole syncis 10 mintaga siis error
+        if (minutes == 120)
         {
             oledClear(i2cHandle);
             // Display a message on the OLED
             oledWriteText(i2cHandle, 0, 0, "NOT SYNCED");
-            oledWriteText(i2cHandle, 0, 2, "ERROR BAD RECEPTION");
-            oledWriteText(i2cHandle, 0, 4, "Shutting Down");
+            oledWriteText(i2cHandle, 2, 0, "ERROR BAD RECEPTION");
+            oledWriteText(i2cHandle, 4, 0, "Shutting Down");
            
             if (system ("sudo shutdown -h now") != 0) {
                 perror("Failed to shutdown");
                 oledClear(i2cHandle);
-                oledWriteText(i2cHandle, 0, 2, "Shutting Down failed");
+                oledWriteText(i2cHandle, 2, 0, "Shutting Down failed");
                 // Handle the error or exit
             }
             return 1;
         }
         
     }
-    
-    oledClear(i2cHandle);
-    printf("synced\n");
     //lediga näitama et on synced ja ready (mõlemal)
     ShowReady();
-    printf("Showed that im ready\n");
-    double *delaysCalculated = RegisterBlinks(i2cHandle); 
-    printf("Calculated delays and returned\n");
+
+    double *delaysCalculated = RegisterBlinks(); 
+    
     int numOfValidCalculations = 0;
     double averageDelay = calculateAverage(delaysCalculated, &numOfValidCalculations); 
     
-    char averageDelayStr[50]; // Adjust size as necessary
+    char averageDelayStr[50]; 
     sprintf(averageDelayStr, "Average Delay: %.5f\n", averageDelay); // Format average delay
     
     oledClear(i2cHandle);
     oledWriteText(i2cHandle, 0, 0, averageDelayStr);
-    printf("%s\n",averageDelayStr);
     
     printDelaysToFile("delays.txt", delaysCalculated, numOfValidCalculations, averageDelay);
-
-    // TODO exit neile funktsioonidele vaja juurde teha
+    
     pthread_join(buttonThread, NULL);
-    preciseSleep(4.0);
+    TurnLedOff();
     oledClear(i2cHandle);
     oledWriteText(i2cHandle, 0, 0, "Program finished");
-    oledWriteText(i2cHandle, 0, 2, "Shutting Down");
-    preciseSleep(2.0);
-    oledClear(i2cHandle);
+    oledWriteText(i2cHandle, 2, 0, "Shutting Down");
+
     close(i2cHandle);
 
     if (system ("sudo shutdown -h now") != 0) {
         perror("Failed to shutdown");
-        system("sudo shutdown");
+        oledClear(i2cHandle);
+        oledWriteText(i2cHandle, 2, 0, "Shutting Down failed");
+        // Handle the error or exit
     }
     return 0;
 }
