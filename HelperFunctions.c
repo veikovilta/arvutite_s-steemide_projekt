@@ -59,7 +59,7 @@ void preciseSleep(double seconds) {
 
     // Break down the seconds into whole seconds and nanoseconds
     req.tv_sec = (time_t)seconds; // Get the whole seconds part
-    req.tv_nsec = (long)((seconds - (double)req.tv_sec) * 1e9); // Convert the fractional part to nanoseconds
+    req.tv_nsec = (long)((seconds - req.tv_sec) * 1e9); // Convert the fractional part to nanoseconds
 
     int ret = clock_nanosleep(CLOCK_REALTIME, 0, &req, &rem);
 
@@ -93,7 +93,7 @@ void* readButtonState_thread(void* arg) {
         if (value == 1) {
             printf("Button is pressed!\n");
         } else {
-            printf("Button is not pressed.\n");
+            //printf("Button is not pressed.\n");
         }
 
         usleep(200000);
@@ -117,7 +117,6 @@ int debounceButtonState(struct args_port* args) {
 
     int stableCount = 0;
     const int debounceThreshold = 3; // Require 3 stable reads
-    const int delayMs = 50; // 50 ms delay between reads
     int value = 0;
 
     while(1) {	
@@ -140,7 +139,7 @@ int debounceButtonState(struct args_port* args) {
             printf("Button is not pressed.\n");
         }
 
-        usleep(delayMs * 1000); // 50 ms delay
+        preciseSleep(0.05); // 50 ms delay
     }
 
     gpiod_line_release(openedPort->line);
@@ -164,12 +163,12 @@ void ShowReady(void)
     if (openedPort == NULL) {
         return;
     }
-    // Display LED for 1 minute
+    // Display LED
     gpiod_line_set_value(openedPort->line, 1);
     preciseSleep(5);
 
     // Turn off the LED and clean up
-    gpiod_line_set_value(openedPort->line, 0);
+    gpiod_line_set_value(openedPort->line, 0); //vb eemaldada
     gpiod_line_release(openedPort->line);
     gpiod_chip_close(openedPort->chip);
     free(openedPort);
@@ -190,6 +189,8 @@ int CheckSync(int i2cHandle)
         oledClear(i2cHandle); // Clear the display
         oledWriteText(i2cHandle, 0, 0, "Failed to run chronyc command.");
         oledWriteText(i2cHandle, 0, 2, "Shutting Down");
+        printf("Error with chronyc, shutting down\n");
+        //system ("sudo shutdown -h now");
         return 1;
     }
 
@@ -215,7 +216,7 @@ int CheckSync(int i2cHandle)
     }
 
     // Output the system offset to the user
-    sprintf(numberStr, "%.9f", systemOffset);
+    sprintf(numberStr, "%.7f", systemOffset);
     snprintf(message, sizeof(message), "Offset: %7s", numberStr);
     
     oledClear(i2cHandle);

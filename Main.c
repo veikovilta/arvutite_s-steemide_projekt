@@ -20,7 +20,6 @@ int main(void)
         perror("Failed to start chrony service");
     }
 
-
     int i2cHandle = i2cInit("/dev/i2c-1", OLED_I2C_ADDR);
     if (i2cHandle < 0) return -1; // Exit if failed
     // message string
@@ -38,7 +37,7 @@ int main(void)
     // Initialize thread arguments
     args.portPin = GPIO_BUTTON; // Set GPIO port number
     args.debugName = "InputButton";  // Set debug name
-	args.inputOutput = false;
+	args.inputOutput = true;
 
     if(pthread_create(&buttonThread, NULL, readButtonState_thread, (void*)&args) < 0)
     {
@@ -58,7 +57,7 @@ int main(void)
 
     // teeb 60 sekundilist checki kui hea kell on
     // 10min vähemalt
-    int minutes = 1;
+    int minutes = 0;
     while(1)
     {
         preciseSleep(5);
@@ -70,14 +69,13 @@ int main(void)
         else 
         {
             // kirjuta ekraanile et oodatud 5 sek
-            sprintf(numberStr, "%d", minutes*5);
+            sprintf(numberStr, "%d", minutes+5);
             snprintf(message, sizeof(message), "seconds waited : %s", numberStr);
             printf("%s\n", message);
-
             oledWriteText(i2cHandle, 0, 0, message);
         }
         
-        minutes++;
+        minutes+=5;
 
         // kui ei ole syncis 10 mintaga siis error
         if (minutes == 120)
@@ -98,16 +96,19 @@ int main(void)
         }
         
     }
-    //lediga näitama et on synced ja ready (mõlemal)
+    printf("synced\n");
+    //lediga naitama et on synced ja ready (molemal)
     ShowReady();
-
-    double *delaysCalculated = RegisterBlinks(); 
+    printf("Showed that im ready\n");
+    double *delaysCalculated = RegisterBlinks(i2cHandle); 
+    printf("Calculated delays and returned\n");
     
     int numOfValidCalculations = 0;
     double averageDelay = calculateAverage(delaysCalculated, &numOfValidCalculations); 
     
     char averageDelayStr[50]; 
     sprintf(averageDelayStr, "Average Delay: %.5f\n", averageDelay); // Format average delay
+    printf("%s\n",averageDelayStr);
     
     oledClear(i2cHandle);
     oledWriteText(i2cHandle, 0, 0, averageDelayStr);
@@ -115,18 +116,17 @@ int main(void)
     printDelaysToFile("delays.txt", delaysCalculated, numOfValidCalculations, averageDelay);
     
     pthread_join(buttonThread, NULL);
-    TurnLedOff();
     oledClear(i2cHandle);
     oledWriteText(i2cHandle, 0, 0, "Program finished");
     oledWriteText(i2cHandle, 2, 0, "Shutting Down");
 
     close(i2cHandle);
 
-    if (system ("sudo shutdown -h now") != 0) {
+    /*if (system ("sudo shutdown -h now") != 0) {
         perror("Failed to shutdown");
         oledClear(i2cHandle);
         oledWriteText(i2cHandle, 2, 0, "Shutting Down failed");
         // Handle the error or exit
-    }
+    }*/
     return 0;
 }

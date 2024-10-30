@@ -8,25 +8,26 @@
 #include "display.h"
 
 
-double* RegisterBlinks()
+double* RegisterBlinks(int i2cHandle)
 {
+    char numberStr[20] = "";
     struct args_port* args = (struct args_port*) args;
-    struct port *openedPort = openPort(GPIO_PIN_LED, "GPIO PIN 22", false);
+    struct port *openedPort = openPort(GPIO_PIN_LED, "GPIO PIN 22", true);
 
     // Wait for the first blink
     while (gpiod_line_get_value(openedPort->line) == 0) 
     {
         preciseSleep(0.1); 
     }
-    
+    printf("Got first blink, sleeping until next full minute\n");
+    oledClear(i2cHandle);
+    oledWriteText(i2cHandle, 0, 0, "Got first blink");
     struct timespec currentTime;
     // Get the current time with high precision
-
     clock_gettime(CLOCK_REALTIME, &currentTime);
 
     // Extract the seconds part of the current time
     long currentSeconds = currentTime.tv_sec % 60;
-    long currentNanoseconds = currentTime.tv_nsec;
 
     if (60 - (currentSeconds) < 10)
     {
@@ -36,13 +37,15 @@ double* RegisterBlinks()
     {
         clock_gettime(CLOCK_REALTIME, &currentTime);
         
-        if ((currentTime.tv_sec % 60) == 0 && currentTime.tv_nsec < 1e5)
+        if ((currentTime.tv_sec % 60) == 0 && (currentTime.tv_nsec < 1e6))
         {
             break;
         }
         
         preciseSleep(0.0001);
     }
+    oledClear(i2cHandle);
+    oledWriteText(i2cHandle, 0, 0, "Got :");
     
     struct timespec senderStartTime; 
     
@@ -64,9 +67,18 @@ double* RegisterBlinks()
         // Wait for the GPIO pin to go LOW
         while (gpiod_line_get_value(openedPort->line) == 1) 
         {
-            preciseSleep(0.001);
+            preciseSleep(0.3);
         }
+        sprintf(numberStr, "%d", i);
+        oledWriteText(i2cHandle, 0, 2, numberStr);
+        printf("Got %d\n", i);
+        fflush(stdout);
     }
+     printf("Got all data\n");
+     fflush(stdout);
+         
+    
+    //double delaysCalculated[BLINK_COUNT];
 
 	double *delaysCalculated = calculateDelays(timestamps, senderStartTime);
 
@@ -82,7 +94,15 @@ double* calculateDelays(const struct timespec *timestamps,
 	const struct timespec senderStartTime) 
 {
     double TimeFix = 0.0; // kui läheb syncist välja siis kasutan
-    double delaysCalculated[BLINK_COUNT];
+    double* delaysCalculated = (double*)malloc(BLINK_COUNT * sizeof(double));
+    
+    // Check if malloc was successful
+    if (delaysCalculated == NULL) {
+        // Handle memory allocation failure
+        fprintf(stderr, "Memory allocation failed for delaysCalculated\n");
+        return NULL;
+    }
+    //double delaysCalculated[BLINK_COUNT];
 	
 	setArrayToZero(delaysCalculated);
 	
@@ -159,7 +179,7 @@ double calculateAverage(double *data, int *count)
 		if (data[i] != 0.0)
 		{
 			sum += data[i]; // Add the value to the sum
-			*count++; // Increment the count of values
+			(*count)++; // Increment the count of values
 		}
 	}
 
