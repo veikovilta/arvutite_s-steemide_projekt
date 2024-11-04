@@ -3,7 +3,9 @@
         "stdlib.h": "c",
         "stdbool.h": "c",
         "time.h": "c",
-        "display.h": "c"
+        "display.h": "c",
+        "unistd.h": "c"
     },
-    "makefile.configureOnOpen": false
+    "makefile.configureOnOpen": false,
+    "ros.distro": "humble"
 }

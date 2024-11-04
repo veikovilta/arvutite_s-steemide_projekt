@@ -9,6 +9,7 @@
 #include <gpiod.h>
 #include <string.h>
 #include "display.h"
+//#include <linux/time.h>
 
 
 struct port* openPort(int lineNumber, char* debugName, bool inputOutput) {
@@ -80,39 +81,8 @@ void* readButtonState_thread(void* arg) {
     struct port *openedPort = openPort(args->portPin, args->debugName, args->inputOutput);
 
     if (openedPort == NULL) {
-        return NULL;
-    }
-
-    while (1) {
-        int value = gpiod_line_get_value(openedPort->line);
-        if (value < 0) {
-            perror("Failed to read button state");
-            break; // Exit the loop on error
-        }
-
-        if (value == 1) {
-            printf("Button is pressed!\n");
-        } else {
-            //printf("Button is not pressed.\n");
-        }
-
-        usleep(200000);
-    }
-
-    gpiod_line_release(openedPort->line);
-    gpiod_chip_close(openedPort->chip);
-    free(openedPort);
-
-    return NULL;
-}
-
-int debounceButtonState(struct args_port* args) {
-    
-    struct port *openedPort = openPort(args->portPin, args->debugName, args->inputOutput);
-
-    if (openedPort == NULL) {
         fprintf(stderr, "Failed to open port.\n");
-        return -1;
+        return NULL;
     }
 
     int stableCount = 0;
@@ -134,29 +104,31 @@ int debounceButtonState(struct args_port* args) {
 
         if (stableCount >= debounceThreshold) {
             printf("Button is pressed!\n");
-            break;
+            pthread_mutex_lock(&buttonMutex); // Lock the mutex before modifying the shared variable
+            buttonPressed = 1; // Set buttonPressed to 1 (pressed)
+            pthread_mutex_unlock(&buttonMutex); // Unlock the mutex
+            break; // Exit the loop when the button is pressed
         } else {
-            printf("Button is not pressed.\n");
+            //printf("Button is not pressed.\n");
         }
 
         preciseSleep(0.05); // 50 ms delay
     }
 
-    gpiod_line_release(openedPort->line);
-    gpiod_chip_close(openedPort->chip);
-    free(openedPort);
+    ClosePort(openedPort);
 
-    return value;
+    return NULL;
 }
 
 void ClosePort(struct port* openedPort)
 {
+    gpiod_line_set_value(openedPort->line, 0);
     gpiod_line_release(openedPort->line);
     gpiod_chip_close(openedPort->chip);
     free(openedPort);
 }
 
-void ShowReady(void)
+struct port* ShowReady(void)
 {  
     struct port *openedPort = openPort(GPIO_READY_LED, "GPIO PIN 23", false);
 
@@ -165,13 +137,8 @@ void ShowReady(void)
     }
     // Display LED
     gpiod_line_set_value(openedPort->line, 1);
-    preciseSleep(5);
 
-    // Turn off the LED and clean up
-    gpiod_line_set_value(openedPort->line, 0); //vb eemaldada
-    gpiod_line_release(openedPort->line);
-    gpiod_chip_close(openedPort->chip);
-    free(openedPort);
+    return openedPort; 
 }
 
 int CheckSync(int i2cHandle)
@@ -257,4 +224,90 @@ void printDelaysToFile(const char *filename, double *data, int count, double ave
     fprintf(file, "\nAverage Delay: %.2f\n", averageDelay); // Print average to file
 
     fclose(file); // Close the file
+}
+
+const char* checkButtonState(struct port* port1, struct port* port2) {
+    
+    int state1 = gpiod_line_get_value(port1->line);
+    int state2 = gpiod_line_get_value(port2->line);
+
+    if (state1 < 0 || state2 < 0) {
+        perror("Failed to read GPIO line value");
+        return "error";
+    }
+
+    // Determine the button state
+    if (state1 == 1 && state2 == 0) {
+        return "saatja";  // Button pressed for "saatja"
+    } else if (state1 == 0 && state2 == 1) {
+        return "vastuvotja";  // Button pressed for "vastuvotja"
+    } else {
+        return "undefined";  // Undefined state
+    }
+}
+
+const char* waitForButtonState() {
+    
+    struct port1* port1 = openPort(0, "Port 1", true);  // Pin for saatja
+    struct port2* port2 = openPort(1, "Port 2", true);  // Pin for vastuvotja
+    
+    const char* state = checkButtonState(port1, port2);
+    printf("Button state: %s\n", state);
+    usleep(500000);  // Delay for readability (500 ms)
+
+    return state;
+}
+
+int ChronySync(int i2cHandle)
+{
+    // message string
+    char message[100] = "";  
+    char numberStr[20] = "";
+
+    // teeb 60 sekundilist checki kui hea kell on
+    // 10min vähemalt
+    int minutes = 0;
+    while(1)
+    {
+        preciseSleep(5);
+    
+        if (CheckSync(i2cHandle) == 0)
+        {
+            break;
+        }
+        else 
+        {
+            // kirjuta ekraanile et oodatud 5 sek
+            sprintf(numberStr, "%d", minutes+5);
+            snprintf(message, sizeof(message), "seconds waited : %s", numberStr);
+            printf("%s\n", message);
+            oledWriteText(i2cHandle, 0, 0, message);
+        }
+        
+        minutes+=5;
+
+        // kui ei ole syncis 10 mintaga siis error
+        if (minutes == 120)
+        {
+            oledClear(i2cHandle);
+            // Display a message on the OLED
+            oledWriteText(i2cHandle, 0, 0, "NOT SYNCED");
+            oledWriteText(i2cHandle, 2, 0, "ERROR BAD RECEPTION");
+            oledWriteText(i2cHandle, 4, 0, "Shutting Down");
+        
+            if (system ("sudo shutdown -h now") != 0) {
+                perror("Failed to shutdown");
+                oledClear(i2cHandle);
+                oledWriteText(i2cHandle, 2, 0, "Shutting Down failed");
+                // Handle the error or exit
+            }
+            return 1;
+        }
+        
+    }
+    
+    printf("Syncronized\n");    
+
+
+    return 0;
 }
