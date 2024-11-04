@@ -2,160 +2,131 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <time.h>
 #include <errno.h>
-#include <gpiod.h> // Add this line in your HelperFunctions.h and Main.c files if not already present
+#include <gpiod.h> 
 #include "stdbool.h"
-#include "LedBlink.h"
 #include "HelperFunctions.h"
 #include "display.h"
-
+#include <string.h>
+#include "Sensor.h"
 #include "Main.h"
 
-//jagatud muutuja bool
-//~ bool loop = true;
-//~ int currentTime = clock_gettime(CLOCK_REALTIME) 
 
 int main(void)
 {
-    //väljakutse chrony start
-    //~ system("chronyc systemctl start");
-
-    //returnib funktsioon, mis checkib kas on low või high
-    //ootab kuni inimene teeb nupuga valiku 
-    // kuvab kumb on
-    
-    struct args_port mingiNupp = { .portPin = 4, .debugName = "GPIO Port 4", .inputOutput = true};
-    
-    int pin15 = readButtonState(&mingiNupp);
-    
-    if (pin15 == 1)
-    {
-        /* siis on vastuvõtja */
+    if (system("sudo systemctl start chrony") != 0) {
+        perror("Failed to start chrony service");
     }
-    else
-    {
-        /* siis on saatja */
-    }
+
+    int i2cHandle = i2cInit("/dev/i2c-1", OLED_I2C_ADDR);
+    if (i2cHandle < 0) return -1; // Exit if failed
+    // message string
+    char message[100] = "";  
+    char numberStr[20] = "";
+
+    oledInit(i2cHandle); // Initialize the OLED
+    oledClear(i2cHandle); // Clear the display
+    oledWriteText(i2cHandle, 0, 0, "Program started");
     
-    //check if sync
-    //sleep 60 sec vnii chrony salvestamiseks
-    //pärast checki kui hea ka
-
-    //lediga näitama et on cynced ja ready (mõlemal)
-
-    //järgmisene vajutad start ja sellest läheb 
-    // käima järgmise täis minutiga test protsess
-
-    pthread_t blinkThread, displayThread;
-
-    //~ if(pthread_create(&syncThread, NULL, syncWithChrony, NULL) != 0){
-        //~ perror("Failed to create thread");
-        //~ return 1;
-    //~ }
-    
+    // eraldi thread enne käima mis checkib nuppu
+    pthread_t buttonThread;
     struct args_port args;
 
     // Initialize thread arguments
-    args.portPin = GPIO_LINE_MAIN_BLINK;                 // Set GPIO port number
-    args.debugName = "LEDController";  // Set debug name
-	args.inputOutput = false;
-    
-    // Create a thread for other jobs
-    if(pthread_create(&blinkThread, NULL, ledBlinking20, (void*)&args) != 0){
-        perror("Failed to create thread");
-        return 1;
-    }
-    
-    //create thread for displaying info on the screen
-    if(pthread_create(&displayThread, NULL, displayInfo, NULL) != 0){
-        perror("Failed to create thread");
-        return 1;
-    }
-    // Wait for the threads to complete (they won't in this case)
-    //~ pthread_join(sync_thread, NULL);
-    pthread_join(blinkThread, NULL);
-    pthread_join(displayThread, NULL);
+    args.portPin = GPIO_BUTTON; // Set GPIO port number
+    args.debugName = "InputButton";  // Set debug name
+	args.inputOutput = true;
 
+    if(pthread_create(&buttonThread, NULL, readButtonState_thread, (void*)&args) < 0)
+    {
+        perror("Failed to create thread");
+        oledClear(i2cHandle);
+        oledWriteText(i2cHandle, 0, 0, "ERROR Failed to create thread");
+        oledWriteText(i2cHandle, 2, 0, "Shutting Down");
+        
+        if (system ("sudo shutdown -h now") != 0) {
+            perror("Failed to shutdown");
+            oledClear(i2cHandle);
+            oledWriteText(i2cHandle, 2, 0, "Shutting Down failed");
+            // Handle the error or exit
+        }
+        return 1;
+    } 
+
+    // teeb 60 sekundilist checki kui hea kell on
+    // 10min vähemalt
+    int minutes = 0;
+    while(1)
+    {
+        preciseSleep(5);
+    
+        if (CheckSync(i2cHandle) == 0)
+        {
+            break;
+        }
+        else 
+        {
+            // kirjuta ekraanile et oodatud 5 sek
+            sprintf(numberStr, "%d", minutes+5);
+            snprintf(message, sizeof(message), "seconds waited : %s", numberStr);
+            printf("%s\n", message);
+            oledWriteText(i2cHandle, 0, 0, message);
+        }
+        
+        minutes+=5;
+
+        // kui ei ole syncis 10 mintaga siis error
+        if (minutes == 120)
+        {
+            oledClear(i2cHandle);
+            // Display a message on the OLED
+            oledWriteText(i2cHandle, 0, 0, "NOT SYNCED");
+            oledWriteText(i2cHandle, 2, 0, "ERROR BAD RECEPTION");
+            oledWriteText(i2cHandle, 4, 0, "Shutting Down");
+           
+            if (system ("sudo shutdown -h now") != 0) {
+                perror("Failed to shutdown");
+                oledClear(i2cHandle);
+                oledWriteText(i2cHandle, 2, 0, "Shutting Down failed");
+                // Handle the error or exit
+            }
+            return 1;
+        }
+        
+    }
+    printf("synced\n");
+    //lediga naitama et on synced ja ready (molemal)
+    ShowReady();
+    printf("Showed that im ready\n");
+    double *delaysCalculated = RegisterBlinks(i2cHandle); 
+    printf("Calculated delays and returned\n");
+    
+    int numOfValidCalculations = 0;
+    double averageDelay = calculateAverage(delaysCalculated, &numOfValidCalculations); 
+    
+    char averageDelayStr[50]; 
+    sprintf(averageDelayStr, "Average Delay: %.5f\n", averageDelay); // Format average delay
+    printf("%s\n",averageDelayStr);
+    
+    oledClear(i2cHandle);
+    oledWriteText(i2cHandle, 0, 0, averageDelayStr);
+    
+    printDelaysToFile("delays.txt", delaysCalculated, numOfValidCalculations, averageDelay);
+    
+    pthread_join(buttonThread, NULL);
+    oledClear(i2cHandle);
+    oledWriteText(i2cHandle, 0, 0, "Program finished");
+    oledWriteText(i2cHandle, 2, 0, "Shutting Down");
+
+    close(i2cHandle);
+
+    /*if (system ("sudo shutdown -h now") != 0) {
+        perror("Failed to shutdown");
+        oledClear(i2cHandle);
+        oledWriteText(i2cHandle, 2, 0, "Shutting Down failed");
+        // Handle the error or exit
+    }*/
     return 0;
 }
-
-
-//~ void* sync_with_chrony(void* arg) {
-    //~ if (check == )
-    //~ while (loop) {
-        //~ // Sync system time with Chrony
-        //~ current_time = clock_gettime(CLOCK_REALTIME, ....);
-
-        //~ // Wait for 2 seconds before syncing again
-        //~ preciseSleep(2);
-    //~ }
-    //~ return NULL;
-//~ }
-
-//~ void* other_jobs(void* arg) {
-    //~ int i = 0;
-    //~ array[20];
-    //~ for(i = 0; i < 60; i++)
-    //~ {
-        //~ pin1 = high;
-        //~ array[i] = current_time; //debug
-        //~ preciseSleep(1); // teeme oma sleep funktsiooni kasutades current time ülemine asi
-        //~ pin1 = low;
-        //~ preciseSleep(2)
-    //~ }
-    //~ SaveFile(); //debug
-    
-    //~ return NULL;
-//~ }
-
-/* kuidas gpiod chipiga kirjutada #define GPIO_CHIP "/dev/gpiochip0"  // GPIO chip device
-#define GPIO_LINE 17                // GPIO line (GPIO 17)
-
-int main() {
-    struct gpiod_chip *chip;
-    struct gpiod_line *line;
-    int ret;
-
-    // Open the GPIO chip (e.g., /dev/gpiochip0)
-    chip = gpiod_chip_open(GPIO_CHIP);
-    if (!chip) {
-        perror("Open GPIO chip failed");
-        return 1;
-    }
-
-    // Get the GPIO line (pin)
-    line = gpiod_chip_get_line(chip, GPIO_LINE);
-    if (!line) {
-        perror("Get GPIO line failed");
-        gpiod_chip_close(chip);
-        return 1;
-    }
-
-    // Request the line as output and set initial value to 0 (low)
-    ret = gpiod_line_request_output(line, "myapp", 0);
-    if (ret < 0) {
-        perror("Request line as output failed");
-        gpiod_chip_close(chip);
-        return 1;
-    }
-
-    // Toggle the GPIO line: ON (1) and OFF (0) every second
-    for (int i = 0; i < 10; ++i) {
-        // Set the line high (turn on)
-        gpiod_line_set_value(line, 1);
-        printf("GPIO %d: ON\n", GPIO_LINE);
-        sleep(1);
-
-        // Set the line low (turn off)
-        gpiod_line_set_value(line, 0);
-        printf("GPIO %d: OFF\n", GPIO_LINE);
-        sleep(1);
-    }
-
-    // Release the line and close the chip
-    gpiod_line_release(line);
-    gpiod_chip_close(chip);
-
-    return 0;
-}*/
