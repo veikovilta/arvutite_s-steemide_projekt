@@ -104,9 +104,9 @@ void* readButtonState_thread(void* arg) {
 
         if (stableCount >= debounceThreshold) {
             printf("Button is pressed!\n");
-            pthread_mutex_lock(&buttonMutex); // Lock the mutex before modifying the shared variable
-            buttonPressed = 1; // Set buttonPressed to 1 (pressed)
-            pthread_mutex_unlock(&buttonMutex); // Unlock the mutex
+            //~ pthread_mutex_lock(&buttonMutex); // Lock the mutex before modifying the shared variable
+            //~ buttonPressed = 1; // Set buttonPressed to 1 (pressed)
+            //~ pthread_mutex_unlock(&buttonMutex); // Unlock the mutex
             break; // Exit the loop when the button is pressed
         } else {
             //printf("Button is not pressed.\n");

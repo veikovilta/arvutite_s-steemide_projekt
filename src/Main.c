@@ -35,7 +35,7 @@ int main(void)
     pthread_t buttonThread;
     struct args_port args;
 
-    pthread_mutex_init(&buttonMutex, NULL);
+    //pthread_mutex_init(&buttonMutex, NULL);
 
     // Initialize thread arguments
     args.portPin = GPIO_BUTTON; // Set GPIO port number
@@ -59,9 +59,9 @@ int main(void)
     } 
 
 
-    pthread_mutex_lock(&buttonMutex); // Lock the mutex before modifying the shared variable
-    buttonPressed = 0; // Set buttonPressed to 1 (pressed)
-    pthread_mutex_unlock(&buttonMutex); // Unlock the mutex
+    //~ pthread_mutex_lock(&buttonMutex); // Lock the mutex before modifying the shared variable
+    //~ buttonPressed = 0; // Set buttonPressed to 1 (pressed)
+    //~ pthread_mutex_unlock(&buttonMutex); // Unlock the mutex
     
     const char* saatjaOrVastuvotja = waitForButtonState(27, 22);
     struct port* syncLedOpenedPort = NULL;
