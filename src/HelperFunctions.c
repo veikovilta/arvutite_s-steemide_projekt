@@ -246,14 +246,17 @@ const char* checkButtonState(struct port* port1, struct port* port2) {
     }
 }
 
-const char* waitForButtonState() {
+const char* waitForButtonState(int port1, int port2) {
     
-    struct port1* port1 = openPort(0, "Port 1", true);  // Pin for saatja
-    struct port2* port2 = openPort(1, "Port 2", true);  // Pin for vastuvotja
+    struct port* openedPort1 = openPort(port1, "Port 1", true);  // Pin for saatja
+    struct port* openedPort2 = openPort(port2, "Port 2", true);  // Pin for vastuvotja
     
-    const char* state = checkButtonState(port1, port2);
+    const char* state = checkButtonState(openedPort1, openedPort2);
     printf("Button state: %s\n", state);
     usleep(500000);  // Delay for readability (500 ms)
+
+    ClosePort(openedPort1);
+    ClosePort(openedPort2);
 
     return state;
 }
@@ -310,4 +313,32 @@ int ChronySync(int i2cHandle)
 
 
     return 0;
+}
+
+void WaitForNextMinuteBlinker(struct timespec firstblink) {
+    struct timespec currentTime;
+
+    // Print checking status
+    printf("Checking if it's less than 10 sec to the next full minute\n");
+    fflush(stdout);
+
+    // Calculate if within 10 seconds of the next full minute
+    if (60 - (firstblink.tv_sec % 60) <= 10) {
+        preciseSleep(11); // Sleep for 11 seconds
+    }
+
+    printf("Waiting for the next minute\n");
+    fflush(stdout);
+
+    // Loop until the next full minute
+    while (1) {
+        clock_gettime(CLOCK_REALTIME, &currentTime);
+
+        // Break if the seconds are exactly at the start of a minute
+        if ((currentTime.tv_sec % 60) == 0 && currentTime.tv_nsec < 1e6) {
+            break;
+        }
+
+        preciseSleep(0.0001); // Sleep a short time before rechecking
+    }
 }

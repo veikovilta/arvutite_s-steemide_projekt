@@ -63,7 +63,7 @@ int main(void)
     buttonPressed = 0; // Set buttonPressed to 1 (pressed)
     pthread_mutex_unlock(&buttonMutex); // Unlock the mutex
     
-    const char* saatjaOrVastuvotja = waitForButtonState();
+    const char* saatjaOrVastuvotja = waitForButtonState(27, 22);
     struct port* syncLedOpenedPort = NULL;
 
     int synced = ChronySync(i2cHandle); 
@@ -72,8 +72,14 @@ int main(void)
         syncLedOpenedPort = ShowReady();
     }
 
+    printf("You have chosen: %s\n", saatjaOrVastuvotja); 
+
     if(!strcmp(saatjaOrVastuvotja, (const char*)"saatja"))
     {
+        
+        printf("Starting: %s\n", "SAATJA"); 
+        fflush(stdout);
+
         struct args_port ledBlinkPort; 
 
         ledBlinkPort.portPin = GPIO_LINE_MAIN_BLINK; 
@@ -87,60 +93,47 @@ int main(void)
             (long)firstblink.tv_sec, (long)firstblink.tv_nsec);
         fflush(stdout);
         
-        printf("Checking if its less than 10sec to the next full minute\n");
-        fflush(stdout);
-        
-        
-        if (60 - (firstblink.tv_sec % 60) <= 10)
-        {
-            preciseSleep(11);
-        }
-        
-        printf("Waiting next minute\n");
-        fflush(stdout);
-        
-        struct timespec currentTime; 
-        
-        while (1)
-        {
-            clock_gettime(CLOCK_REALTIME, &currentTime);
-            
-            if ((currentTime.tv_sec % 60) == 0 && currentTime.tv_nsec < 1e6)
-            {
-                break;
-            }
-            
-            preciseSleep(0.0001);
-        }
+        WaitForNextMinuteBlinker(firstblink); 
         
         printf("Start blinking\n");
         fflush(stdout);
         
         ledBlinking20(&ledBlinkPort);
-        close(i2cHandle);
     }
     else if(!strcmp(saatjaOrVastuvotja, (const char*)"vastuvotja"))
     {
-        printf("Showed that im ready\n");
+
+        printf("Starting: %s\n", "VASTUVOTJA"); 
+
         double *delaysCalculated = RegisterBlinks(i2cHandle); 
+
         printf("Calculated delays and returned\n");
         int numOfValidCalculations = 0;
         double averageDelay = calculateAverage(delaysCalculated, &numOfValidCalculations); 
         char averageDelayStr[50]; 
+    
         sprintf(averageDelayStr, "Average Delay: %.5f\n", averageDelay); // Format average delay
         printf("%s\n",averageDelayStr);
+    
         oledClear(i2cHandle);
         oledWriteText(i2cHandle, 0, 0, averageDelayStr);
         printDelaysToFile("delays.txt", delaysCalculated, numOfValidCalculations, averageDelay);
-        pthread_join(buttonThread, NULL);
-        oledClear(i2cHandle);
-        oledWriteText(i2cHandle, 0, 0, "Program finished");
-        oledWriteText(i2cHandle, 2, 0, "Shutting Down");
-        close(i2cHandle);
-
     }
 
-    ClosePort(syncLedOpenedPort);
+    if (i2cHandle){
+        close(i2cHandle);
+    }
+
+    if (syncLedOpenedPort)
+    {
+        ClosePort(syncLedOpenedPort);
+    }
+
+    pthread_join(buttonThread, NULL);
+
+    oledClear(i2cHandle);
+    oledWriteText(i2cHandle, 0, 0, "Program finished");
+    oledWriteText(i2cHandle, 2, 0, "Shutting Down");
 
     /*if (system ("sudo shutdown -h now") != 0) {
         perror("Failed to shutdown");
@@ -152,5 +145,54 @@ int main(void)
     return 0;
 }
 
+/*
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
+#define BUFFER_SIZE 1024 // Define an initial buffer size
 
+void append_to_buffer(char **buffer, int *current_size, const char *data) {
+    // Check if there is enough space in the buffer
+    if (*current_size + strlen(data) >= BUFFER_SIZE) {
+        fprintf(stderr, "Buffer overflow. Consider increasing BUFFER_SIZE.\n");
+        return;
+    }
+    
+    // Append data to buffer
+    strcat(*buffer, data);
+    *current_size += strlen(data);
+}
+
+int main() {
+    // Allocate buffer and initialize it to an empty string
+    char *buffer = (char *)malloc(BUFFER_SIZE);
+    if (buffer == NULL) {
+        perror("Failed to allocate buffer");
+        return 1;
+    }
+    buffer[0] = '\0'; // Start with an empty string
+
+    int current_size = 0;
+
+    // Example usage
+    append_to_buffer(&buffer, &current_size, "This is the first line.\n");
+    append_to_buffer(&buffer, &current_size, "This is the second line.\n");
+    append_to_buffer(&buffer, &current_size, "This is the third line.\n");
+
+    // Write buffer content to file
+    FILE *file = fopen("output.txt", "w");
+    if (file == NULL) {
+        perror("Failed to open file");
+        free(buffer);
+        return 1;
+    }
+    fputs(buffer, file); // Write the buffer to the file in one go
+    fclose(file);
+
+    // Cleanup
+    free(buffer);
+    printf("Data written to output.txt\n");
+    return 0;
+}
+*/

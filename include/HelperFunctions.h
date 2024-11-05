@@ -27,9 +27,10 @@ void preciseSleep(double seconds);
 void printDelaysToFile(const char *filename, double *data, int count, double averageDelay);
 void* readButtonState_thread(void* arg);
 int CheckSync(int i2cHandle);
-struct port* ShowReady(void);
+const char* waitForButtonState(int port1, int port2);
 const char* checkButtonState(struct port* port1, struct port* port2);
 const char* waitForButtonState();
- 
+void WaitForNextMinuteBlinker(struct timespec firstblink);
+
 
 #endif
