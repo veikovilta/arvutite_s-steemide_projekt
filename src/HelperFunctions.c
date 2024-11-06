@@ -9,7 +9,8 @@
 #include <gpiod.h>
 #include <string.h>
 #include "display.h"
-//#include <linux/time.h>
+#include "State.h"
+#include "Main.h"
 
 
 struct port* openPort(int lineNumber, char* debugName, bool inputOutput) {
@@ -80,6 +81,9 @@ void* readButtonState_thread(void* arg) {
     struct args_port* args = (struct args_port*) arg;
     struct port *openedPort = openPort(args->portPin, args->debugName, args->inputOutput);
 
+    pthread_cleanup_push((void(*)(void*))ClosePort, openedPort);
+
+
     if (openedPort == NULL) {
         fprintf(stderr, "Failed to open port.\n");
         return NULL;
@@ -104,10 +108,9 @@ void* readButtonState_thread(void* arg) {
 
         if (stableCount >= debounceThreshold) {
             printf("Button is pressed!\n");
-            //~ pthread_mutex_lock(&buttonMutex); // Lock the mutex before modifying the shared variable
-            //~ buttonPressed = 1; // Set buttonPressed to 1 (pressed)
-            //~ pthread_mutex_unlock(&buttonMutex); // Unlock the mutex
-            break; // Exit the loop when the button is pressed
+            pthread_mutex_lock(&buttonLock);
+            buttonPressed = 1;
+            pthread_mutex_unlock(&buttonLock); 
         } else {
             //printf("Button is not pressed.\n");
         }
@@ -115,7 +118,7 @@ void* readButtonState_thread(void* arg) {
         preciseSleep(0.05); // 50 ms delay
     }
 
-    ClosePort(openedPort);
+    pthread_cleanup_pop(1);
 
     return NULL;
 }
@@ -252,7 +255,7 @@ const char* waitForButtonState(int port1, int port2) {
     struct port* openedPort2 = openPort(port2, "Port 2", true);  // Pin for vastuvotja
     
     const char* state = checkButtonState(openedPort1, openedPort2);
-    printf("Button state: %s\n", state);
+    //printf("Button state: %s\n", state);
     usleep(500000);  // Delay for readability (500 ms)
 
     ClosePort(openedPort1);
@@ -321,7 +324,7 @@ void WaitForNextMinuteBlinker(struct timespec firstblink) {
     // Print checking status
     printf("Checking if it's less than 10 sec to the next full minute\n");
     fflush(stdout);
-
+    
     // Calculate if within 10 seconds of the next full minute
     if (60 - (firstblink.tv_sec % 60) <= 10) {
         preciseSleep(11); // Sleep for 11 seconds
@@ -341,4 +344,63 @@ void WaitForNextMinuteBlinker(struct timespec firstblink) {
 
         preciseSleep(0.0001); // Sleep a short time before rechecking
     }
+}
+
+const char* WaitForButtonAndSelectConfig(int i2cHandle) {
+    char* saatjaOrVastuvotja;
+    char message[100] = "";
+    
+    // Lock and reset the buttonPressed flag
+    pthread_mutex_lock(&buttonLock);
+    buttonPressed = 0;
+    pthread_mutex_unlock(&buttonLock);
+
+    while (1) {
+        oledClear(i2cHandle);
+
+        // Wait for button state and get the selected config
+        saatjaOrVastuvotja = waitForButtonState(27, 22);
+        sprintf(message, "Picked config: %s\n", saatjaOrVastuvotja);
+
+        oledWriteText(i2cHandle, 0, 0, "PRESS BUTTON TO SELECT");
+        oledWriteText(i2cHandle, 1, 2, message);
+
+        preciseSleep(0.1);
+
+        // Check if button was pressed, exit loop if true
+        pthread_mutex_lock(&buttonLock);
+        if (buttonPressed) {
+            buttonPressed = 0; 
+            break;
+        }
+        pthread_mutex_unlock(&buttonLock); 
+    }
+
+    return saatjaOrVastuvotja;
+}
+
+int CreateButtonThread(int i2cHandle, pthread_t* buttonThread) {
+
+    struct args_port args;
+    args.portPin = GPIO_BUTTON;
+    args.debugName = "InputButton";
+	args.inputOutput = true;
+
+
+    if(pthread_create(&buttonThread, NULL, readButtonState_thread, (void*)&args) < 0)
+    {
+        perror("Failed to create thread");
+        oledClear(i2cHandle);
+        oledWriteText(i2cHandle, 0, 0, "ERROR Failed to create thread");
+        oledWriteText(i2cHandle, 2, 0, "Shutting Down");
+        
+        if (system("sudo shutdown -h now") != 0) {
+            perror("Failed to shutdown");
+            oledClear(i2cHandle);
+            oledWriteText(i2cHandle, 2, 0, "Shutting Down failed");
+        }
+        return 1;
+    }
+
+    return 0; 
 }

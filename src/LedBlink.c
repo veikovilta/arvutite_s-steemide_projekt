@@ -8,6 +8,7 @@
 #include <gpiod.h>
 #include <time.h>
 
+
 void ledBlinking20(struct args_port* args)
 {
     struct port *openedPort = openPort(args->portPin, args->debugName, false); // 'true' for output
