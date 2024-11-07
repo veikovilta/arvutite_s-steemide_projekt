@@ -359,16 +359,17 @@ const char* WaitForButtonAndSelectConfig(int i2cHandle) {
         oledClear(i2cHandle);
 
         // Wait for button state and get the selected config
-        saatjaOrVastuvotja = waitForButtonState(27, 22);
+        saatjaOrVastuvotja = waitForButtonState(23, 24);
         sprintf(message, "Picked config: %s\n", saatjaOrVastuvotja);
 
         oledWriteText(i2cHandle, 0, 0, "PRESS BUTTON TO SELECT");
         oledWriteText(i2cHandle, 1, 2, message);
 
-        preciseSleep(0.1);
+        preciseSleep(0.5);
 
         // Check if button was pressed, exit loop if true
         pthread_mutex_lock(&buttonLock);
+        printf("%d\n", buttonPressed);
         if (buttonPressed) {
             buttonPressed = 0; 
             break;
@@ -400,6 +401,8 @@ int CreateButtonThread(int i2cHandle, pthread_t* buttonThread) {
         }
         return 1;
     }
+
+    printf("Button thread created\n");
 
     return 0; 
 }

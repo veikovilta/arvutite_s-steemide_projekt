@@ -48,7 +48,7 @@ int main(void)
     oledClear(i2cHandle);
     oledWriteText(i2cHandle, 0, 0, "Program started");
     printf("Program started\n");
-
+    preciseSleep(1);
 
 //##########################################################################
     
@@ -56,7 +56,11 @@ int main(void)
 
     pthread_t buttonThread;
 
-    CreateButtonThread(i2cHandle, &buttonThread);
+    if (CreateButtonThread(i2cHandle, &buttonThread))
+    {
+        printf("Button thread created\n");
+    }
+    
 
 //##########################################################################
 
