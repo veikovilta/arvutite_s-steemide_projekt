@@ -132,7 +132,7 @@ int main(void)
 
         printf("Blinking finished\n"); 
         TimeStampToBuffer(&buffer, "Blinking finished: ");
-
+	/*
         pthread_mutex_lock(&buttonLock);
         buttonPressed = 0;
         pthread_mutex_unlock(&buttonLock);
@@ -143,11 +143,14 @@ int main(void)
         {
             if (IsButtonPressed())
             {
-                break;
+                printf("ENDED pressed\n");
+
+		break;
             }
 
             preciseSleep(0.1);
         }
+	*/
         
     }
     else if(!strcmp(saatjaOrVastuvotja, (const char*)"vastuvotja"))
@@ -173,7 +176,8 @@ int main(void)
         oledWriteText(i2cHandle, 0, 0, averageDelayStr);
 
         TimeStampToBuffer(&buffer, "Sensor finished: "); 
-
+	preciseSleep(3); 
+	/*
         pthread_mutex_lock(&buttonLock);
         buttonPressed = 0;
         pthread_mutex_unlock(&buttonLock);
@@ -189,6 +193,7 @@ int main(void)
 
             preciseSleep(0.1);
         }
+	*/
     }
 
 

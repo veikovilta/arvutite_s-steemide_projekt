@@ -225,6 +225,19 @@ void printDelaysToFile(const char *filename, double *data, int count, double ave
     fclose(file); // Close the file
 }
 
+int IsButtonPressed(void)
+{
+	pthread_mutex_lock(&buttonLock);
+	if(buttonPressed)
+	{
+		buttonPressed = 0; 
+		return 1;
+	}
+	pthread_mutex_unlock(&buttonLock);
+
+	return 0;
+}
+
 const char* checkButtonState(struct port* port1, struct port* port2) {
     
     int state1 = gpiod_line_get_value(port1->line);
