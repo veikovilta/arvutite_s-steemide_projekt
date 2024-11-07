@@ -102,6 +102,7 @@ void* readButtonState_thread(void* arg) {
 
         if (value == 1) {
             stableCount++;
+		//printf("PIP\n");
         } else {
             stableCount = 0;
         }
@@ -197,12 +198,7 @@ int CheckSync(int i2cHandle)
     // piiriks 0.1 ms
     if (systemOffset < 0.0001 && systemOffset > -0.0001) 
     {
-        oledWriteText(i2cHandle, 0, 2, "Clock is in sync");
-        return 0;
-    } 
-    else 
-    {
-        oledWriteText(i2cHandle, 0, 2, "Clock is not in sync");
+      	 return 0;
     }
 
     return 1;
@@ -349,27 +345,32 @@ void WaitForNextMinuteBlinker(struct timespec firstblink) {
 const char* WaitForButtonAndSelectConfig(int i2cHandle) {
     char* saatjaOrVastuvotja;
     char message[100] = "";
-    
+    char lastPicked[30];
     // Lock and reset the buttonPressed flag
     pthread_mutex_lock(&buttonLock);
     buttonPressed = 0;
     pthread_mutex_unlock(&buttonLock);
-
+	
     while (1) {
         oledClear(i2cHandle);
 
         // Wait for button state and get the selected config
         saatjaOrVastuvotja = waitForButtonState(23, 24);
-        sprintf(message, "Picked config: %s\n", saatjaOrVastuvotja);
+        sprintf(message, "Selected:%s\n", saatjaOrVastuvotja);
+        
+	if(strcmp(saatjaOrVastuvotja, lastPicked) != 0){
 
-        oledWriteText(i2cHandle, 0, 0, "PRESS BUTTON TO SELECT");
-        oledWriteText(i2cHandle, 1, 2, message);
-
+		oledWriteText(i2cHandle, 0, 0, "PRESS BUTTON TO PICK");
+        	oledWriteText(i2cHandle, 1, 2, message);
+	}
+	
+	strcpy(lastPicked, *saatjaOrVastuvotja);
+	
         preciseSleep(0.5);
 
         // Check if button was pressed, exit loop if true
         pthread_mutex_lock(&buttonLock);
-        printf("%d\n", buttonPressed);
+        //printf("%d\n", buttonPressed);
         if (buttonPressed) {
             buttonPressed = 0; 
             break;

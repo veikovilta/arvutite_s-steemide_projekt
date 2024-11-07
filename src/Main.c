@@ -152,9 +152,9 @@ int main(void)
 
     oledClear(i2cHandle);
     oledWriteText(i2cHandle, 0, 0, "Program finished");
-    oledWriteText(i2cHandle, 2, 0, "Shutting Down");
+    oledWriteText(i2cHandle, 0, 2, "Shutting Down");
 
-    write_log_to_file(buffer);
+    //write_log_to_file(buffer);
     free(buffer);
 
     if (syncLedOpenedPort)
