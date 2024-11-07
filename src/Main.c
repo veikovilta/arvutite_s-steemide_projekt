@@ -111,12 +111,14 @@ int main(void)
 
         
         InstanceState = WAITING_NEXT_MINUTE_LED; 
-
+	
+	oledClear(i2cHandle);
+	oledWriteText(i2cHandle, 0, 2);
         WaitForNextMinuteBlinker(firstblink); 
         
         //InstanceState = LED_BLINKING;
 
-        //printf("Start blinking\n");
+        printf("Start blinking\n");
         //fflush(stdout);
         //oledClear(i2cHandle);
         //oledWriteText(i2cHandle, 0, 0, "BLINKING");
