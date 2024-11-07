@@ -13,7 +13,7 @@ SRCDIR = src
 INCDIR = include
 
 # Source files
-SRCS = $(SRCDIR)/Main.c $(SRCDIR)/Sensor.c $(SRCDIR)/HelperFunctions.c $(SRCDIR)/display.c $(SRCDIR)/LedBlink.c
+SRCS = $(SRCDIR)/Main.c $(SRCDIR)/Sensor.c $(SRCDIR)/HelperFunctions.c $(SRCDIR)/display.c $(SRCDIR)/LedBlink.c $(SRCDIR)/Files.c
 
 # Object files (generated from the source files)
 OBJS = $(SRCS:$(SRCDIR)/%.c=build/%.o)
