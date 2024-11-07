@@ -6,9 +6,10 @@
 #include "Sensor.h"
 #include "HelperFunctions.h"
 #include "display.h"
+#include "Files.h"
 
 
-double* RegisterBlinks(int i2cHandle)
+double* RegisterBlinks(int i2cHandle, char** buffer)
 {
     char numberStr[20] = "";
     struct args_port* args = (struct args_port*) args;
@@ -50,6 +51,7 @@ double* RegisterBlinks(int i2cHandle)
     struct timespec senderStartTime; 
     
     clock_gettime(CLOCK_REALTIME, &senderStartTime);
+    TimeStampToBufferWithTime(buffer, "Sender start time: ", senderStartTime); 
         
     struct timespec timestamps[BLINK_COUNT]; 
     
@@ -69,15 +71,25 @@ double* RegisterBlinks(int i2cHandle)
         {
             preciseSleep(0.3);
         }
-        sprintf(numberStr, "%d", i);
+
+        double* singleDelay = CalculateDelaySingle(timestamps[i], senderStartTime, i);
+
+        if (!singleDelay)
+        {
+            continue;
+        }
+
+        TimeStampToBufferWithTime(buffer, "Seen at: ", timestamps[i]);
+        sprintf(numberStr, "delay: %.5f", *singleDelay);
         oledWriteText(i2cHandle, 0, 2, numberStr);
+        append_to_buffer(buffer, numberStr); 
+
         printf("Got %d\n", i);
-        fflush(stdout);
     }
-     printf("Got all data\n");
-     fflush(stdout);
-         
-    
+
+    printf("Got all data\n");
+
+
     //double delaysCalculated[BLINK_COUNT];
 
 	double *delaysCalculated = calculateDelays(timestamps, senderStartTime);
@@ -87,6 +99,29 @@ double* RegisterBlinks(int i2cHandle)
     free(openedPort);
 	
 	return delaysCalculated; 
+}
+
+double* CalculateDelaySingle(struct timespec timestamp, struct timespec senderStartTime, int numOfBlink)
+{
+    double TimeFix = 0.0; // kui läheb syncist välja siis kasutan
+        
+    double sensorSawTimeSec = 
+        (double)timestamp.tv_sec + 
+        ((double)timestamp.tv_nsec / 1e9);
+
+    double blinkStartTimeSec = 
+        (double)senderStartTime.tv_sec + 
+        ((double)senderStartTime.tv_nsec / 1e9) +
+        (numOfBlink * BLINK_INTERVAL) + TimeFix;
+    
+    double* result = NULL;
+
+    if (sensorSawTimeSec > blinkStartTimeSec)
+    {
+        *result = sensorSawTimeSec - blinkStartTimeSec;
+    }
+
+    return result; 
 }
 
 //error handling to-do if isnt some readings are wrong 

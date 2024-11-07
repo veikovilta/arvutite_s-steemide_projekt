@@ -94,7 +94,8 @@ int main(void)
         Saatja_Vastuvotja_State = SAATJA; 
 
         printf("Starting: %s\n", "SAATJA"); 
-        fflush(stdout);
+        
+        TimeStampToBuffer(&buffer, "Blinking program start: "); 
 
         struct args_port ledBlinkPort; 
 
@@ -104,6 +105,9 @@ int main(void)
 
         struct timespec firstblink = ledBlinkOnce(&ledBlinkPort, &buffer);
 
+        oledClear(i2cHandle);
+        oledWriteText(i2cHandle, 0, 0, "Waiting");
+        oledWriteText(i2cHandle, 0, 2, "Next min blink");
         // Print the time
         printf("LED blink time: %ld seconds and %ld nanoseconds\n", 
             (long)firstblink.tv_sec, (long)firstblink.tv_nsec);
@@ -112,17 +116,11 @@ int main(void)
         
         InstanceState = WAITING_NEXT_MINUTE_LED; 
 	
-	oledClear(i2cHandle);
-	oledWriteText(i2cHandle, 0, 2);
         WaitForNextMinuteBlinker(firstblink); 
         
         //InstanceState = LED_BLINKING;
 
         printf("Start blinking\n");
-        //fflush(stdout);
-        //oledClear(i2cHandle);
-        //oledWriteText(i2cHandle, 0, 0, "BLINKING");
-        
         ledBlinking20(&ledBlinkPort, &buffer);
 
         InstanceState = BLINKING_FINISHED;
@@ -133,29 +131,64 @@ int main(void)
         preciseSleep(1); 
 
         printf("Blinking finished\n"); 
-        TimeStampToBuffer(&buffer, "Blinking finished: "); 
+        TimeStampToBuffer(&buffer, "Blinking finished: ");
+
+        pthread_mutex_lock(&buttonLock);
+        buttonPressed = 0;
+        pthread_mutex_unlock(&buttonLock);
+
+        oledWriteText(i2cHandle, 0, 2, "PRESS BTN TO END");
+
+        while (1)
+        {
+            if (IsButtonPressed())
+            {
+                break;
+            }
+
+            preciseSleep(0.1);
+        }
+        
     }
     else if(!strcmp(saatjaOrVastuvotja, (const char*)"vastuvotja"))
     {
         Saatja_Vastuvotja_State = VASTUVOTJA;
 
+        TimeStampToBuffer(&buffer, "Sensor program start: "); 
+
         printf("Starting: %s\n", "VASTUVOTJA"); 
+        
+        double *delaysCalculated = RegisterBlinks(i2cHandle, &buffer); 
 
-        /*
-        double *delaysCalculated = RegisterBlinks(i2cHandle); 
-
-        printf("Calculated delays and returned\n");
+        printf("Calculating average delay\n");
         int numOfValidCalculations = 0;
         double averageDelay = calculateAverage(delaysCalculated, &numOfValidCalculations); 
         char averageDelayStr[50]; 
     
-        sprintf(averageDelayStr, "Average Delay: %.5f\n", averageDelay); // Format average delay
+        sprintf(averageDelayStr, "Average Delay: %.7f\n", averageDelay); // Format average delay
         printf("%s\n",averageDelayStr);
-    
+        append_to_buffer(&buffer, averageDelayStr); 
+
         oledClear(i2cHandle);
         oledWriteText(i2cHandle, 0, 0, averageDelayStr);
-        printDelaysToFile("delays.txt", delaysCalculated, numOfValidCalculations, averageDelay);
-        */
+
+        TimeStampToBuffer(&buffer, "Sensor finished: "); 
+
+        pthread_mutex_lock(&buttonLock);
+        buttonPressed = 0;
+        pthread_mutex_unlock(&buttonLock);
+
+        oledWriteText(i2cHandle, 0, 2, "PRESS BTN TO END");
+
+        while (1)
+        {
+            if (IsButtonPressed())
+            {
+                break;
+            }
+
+            preciseSleep(0.1);
+        }
     }
 
 
@@ -165,6 +198,9 @@ int main(void)
     oledClear(i2cHandle);
     oledWriteText(i2cHandle, 0, 0, "Program finished");
     oledWriteText(i2cHandle, 0, 2, "Shutting Down");
+    printf("Program finished\n"); 
+
+    TimeStampToBuffer(&buffer, "End: "); 
 
     write_log_to_file(buffer);
     free(buffer);
@@ -180,6 +216,8 @@ int main(void)
     if (i2cHandle){
         close(i2cHandle);
     }
+
+
 
     /*if (system ("sudo shutdown -h now") != 0) {
         perror("Failed to shutdown");

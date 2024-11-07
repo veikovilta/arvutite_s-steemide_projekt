@@ -34,5 +34,6 @@ void WaitForNextMinuteBlinker(struct timespec firstblink);
 const char* WaitForButtonAndSelectConfig(int i2cHandle);
 int CreateButtonThread(int i2cHandle, pthread_t* buttonThread);
 struct port* ShowReady(void);
+int IsButtonPressed(void);
 
 #endif
