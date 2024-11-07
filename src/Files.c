@@ -49,11 +49,11 @@ void append_to_buffer(char **buffer, const char *data) {
 
 void write_log_to_file(const char *buffer) {
     // Step 1: Create the log directory if it doesn't exist
-    const char *log_dir = "../log";
+    const char *log_dir = "/log";
     struct stat st = {0};
 
     if (stat(log_dir, &st) == -1) {
-        if (mkdir(log_dir, 0700) != 0) {
+        if (mkdir(log_dir, 0755) != 0) {
             perror("Failed to create log directory");
             return;
         }
@@ -65,7 +65,7 @@ void write_log_to_file(const char *buffer) {
     struct tm *t = localtime(&now);
 
     // Format filename as "log_<YYYY-MM-DD>.txt" in the log directory
-    strftime(filename, sizeof(filename), "../log/log_%Y-%m-%d_%H-%M-%S.txt", t);
+    strftime(filename, sizeof(filename), "/log/log_%Y-%m-%d_%H-%M-%S.txt", t);
     
     // Step 3: Open the file for writing
     FILE *file = fopen(filename, "w");
@@ -106,7 +106,7 @@ char* getCurrentTimestamp(const char *prefix) {
     }
 
     // Combine the prefix and the timestamp into the buffer
-    snprintf(buffer, totalSize, "%s%s\n", prefix, timestamp);
+    snprintf(buffer, totalSize, "%s%s", prefix, timestamp);
 
     return buffer;
 }
@@ -115,5 +115,6 @@ void TimeStampToBuffer(char **buffer, const char* prefix)
 {
     char *timeStampMessage = getCurrentTimestamp(prefix); 
     append_to_buffer(buffer, timeStampMessage);
+    append_to_buffer(buffer, "\n");
     free(timeStampMessage); 
 }
