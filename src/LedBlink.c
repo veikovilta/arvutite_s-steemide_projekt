@@ -10,7 +10,7 @@
 #include <time.h>
 
 
-void ledBlinking20(struct args_port* args, char* buffer)
+void ledBlinking20(struct args_port* args, char** buffer)
 {
     struct port *openedPort = openPort(args->portPin, args->debugName, false); // 'true' for output
 
@@ -52,7 +52,7 @@ void ledBlinking20(struct args_port* args, char* buffer)
     //~ return NULL;
 //~
 
-struct timespec ledBlinkOnce(struct args_port *newPort, char* buffer) {
+struct timespec ledBlinkOnce(struct args_port *newPort, char** buffer) {
     // Open the port for controlling the LED
     struct port *openedPort = openPort(newPort->portPin, newPort->debugName, false); // 'FALSE' for output
     static struct timespec blinkTime; // Use static to return a pointer safely

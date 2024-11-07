@@ -111,7 +111,7 @@ char* getCurrentTimestamp(const char *prefix) {
     return buffer;
 }
 
-void TimeStampToBuffer(char *buffer, const char* prefix)
+void TimeStampToBuffer(char **buffer, const char* prefix)
 {
     char *timeStampMessage = getCurrentTimestamp(prefix); 
     append_to_buffer(buffer, timeStampMessage);

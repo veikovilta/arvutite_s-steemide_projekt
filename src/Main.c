@@ -24,7 +24,7 @@ int main(void)
     InstanceState = STARTING;
     char *buffer = NULL;
 
-    TimeStampToBuffer(buffer, "Start: ");
+    TimeStampToBuffer(&buffer, "Start: ");
 
 //##########################################################################
 
@@ -102,7 +102,7 @@ int main(void)
         ledBlinkPort.debugName = "ledBlink";
         ledBlinkPort.inputOutput = false;
 
-        struct timespec firstblink = ledBlinkOnce(&ledBlinkPort, buffer);
+        struct timespec firstblink = ledBlinkOnce(&ledBlinkPort, &buffer);
 
         // Print the time
         printf("LED blink time: %ld seconds and %ld nanoseconds\n", 
@@ -121,7 +121,7 @@ int main(void)
         oledClear(i2cHandle);
         oledWriteText(i2cHandle, 0, 0, "BLINKING");
         
-        ledBlinking20(&ledBlinkPort, buffer);
+        ledBlinking20(&ledBlinkPort, &buffer);
 
         InstanceState = BLINKING_FINISHED;
 
@@ -131,7 +131,7 @@ int main(void)
         preciseSleep(1); 
 
         printf("Blinking finished\n"); 
-        TimeStampToBuffer(buffer, "Blinking finished: "); 
+        TimeStampToBuffer(&buffer, "Blinking finished: "); 
     }
     else if(!strcmp(saatjaOrVastuvotja, (const char*)"vastuvotja"))
     {
