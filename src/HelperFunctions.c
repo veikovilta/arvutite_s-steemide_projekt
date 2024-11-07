@@ -102,7 +102,7 @@ void* readButtonState_thread(void* arg) {
 
         if (value == 1) {
             stableCount++;
-		//printf("PIP\n");
+		printf("PIP\n");
         } else {
             stableCount = 0;
         }
