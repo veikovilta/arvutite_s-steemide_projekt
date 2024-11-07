@@ -352,7 +352,6 @@ const char* WaitForButtonAndSelectConfig(int i2cHandle) {
     pthread_mutex_unlock(&buttonLock);
 	
     while (1) {
-        oledClear(i2cHandle);
 
         // Wait for button state and get the selected config
         saatjaOrVastuvotja = waitForButtonState(23, 24);
@@ -364,7 +363,7 @@ const char* WaitForButtonAndSelectConfig(int i2cHandle) {
         }
         
         if(strcmp(saatjaOrVastuvotja, lastPicked) != 0){
-
+		oledClear(i2cHandle);
             oledWriteText(i2cHandle, 0, 0, "PRESS BUTTON TO PICK");
             oledWriteText(i2cHandle, 1, 2, message);
         }
