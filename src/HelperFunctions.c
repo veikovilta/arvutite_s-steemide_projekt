@@ -357,14 +357,19 @@ const char* WaitForButtonAndSelectConfig(int i2cHandle) {
         // Wait for button state and get the selected config
         saatjaOrVastuvotja = waitForButtonState(23, 24);
         sprintf(message, "Selected:%s\n", saatjaOrVastuvotja);
-        
-	if(strcmp(saatjaOrVastuvotja, lastPicked) != 0){
 
-		oledWriteText(i2cHandle, 0, 0, "PRESS BUTTON TO PICK");
-        	oledWriteText(i2cHandle, 1, 2, message);
-	}
-	
-	strcpy(lastPicked, saatjaOrVastuvotja);
+        if (lastPicked[0] == '\0') {
+            oledWriteText(i2cHandle, 0, 0, "PRESS BUTTON TO PICK");
+            oledWriteText(i2cHandle, 1, 2, message);
+        }
+        
+        if(strcmp(saatjaOrVastuvotja, lastPicked) != 0){
+
+            oledWriteText(i2cHandle, 0, 0, "PRESS BUTTON TO PICK");
+            oledWriteText(i2cHandle, 1, 2, message);
+        }
+        
+	    strcpy(lastPicked, saatjaOrVastuvotja);
 	
         preciseSleep(0.5);
 
