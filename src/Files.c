@@ -118,3 +118,36 @@ void TimeStampToBuffer(char **buffer, const char* prefix)
     append_to_buffer(buffer, "\n");
     free(timeStampMessage); 
 }
+
+char* getCurrentTimestampWithTime(const char *prefix, struct timespec ts) {
+    // Convert the seconds part to a human-readable format
+    struct tm *timeinfo = localtime(&ts.tv_sec);
+
+    // Format the timestamp part
+    char timestamp[30];
+    strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", timeinfo);
+    snprintf(timestamp + 19, sizeof(timestamp) - 19, ".%09ld", ts.tv_nsec);
+
+    // Calculate the total size needed for the prefix + timestamp + null terminator
+    size_t totalSize = strlen(prefix) + strlen(timestamp) + 1;
+
+    // Allocate memory for the result
+    char *buffer = (char *)malloc(totalSize);
+    if (buffer == NULL) {
+        fprintf(stderr, "Memory allocation failed.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // Combine the prefix and the timestamp into the buffer
+    snprintf(buffer, totalSize, "%s%s", prefix, timestamp);
+
+    return buffer;
+}
+
+void TimeStampToBufferWithTime(char **buffer, const char* prefix, struct timespec ts)
+{
+    char *timeStampMessage = getCurrentTimestampWithTime(prefix, ts);  
+    append_to_buffer(buffer, timeStampMessage);
+    append_to_buffer(buffer, "\n");
+    free(timeStampMessage); 
+}

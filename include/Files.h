@@ -7,5 +7,7 @@ void append_to_buffer(char **buffer, const char *data);
 void write_log_to_file(const char *buffer); 
 char* getCurrentTimestamp();
 void TimeStampToBuffer(char **buffer, const char* prefix);
+void TimeStampToBufferWithTime(char **buffer, const char* prefix, struct timespec ts);
+char* getCurrentTimestampWithTime(const char *prefix, struct timespec ts);
 
 #endif

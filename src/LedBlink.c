@@ -14,19 +14,33 @@ void ledBlinking20(struct args_port* args, char** buffer)
 {
     struct port *openedPort = openPort(args->portPin, args->debugName, false); // 'true' for output
 
+    // Array to store timestamps (local variable inside the loop)
+    struct timespec blinkTimes[20];
+    struct timespec ts;
+    
     for (int i = 0; i < 20; i++) {
         // Turn the LED on
         gpiod_line_set_value(openedPort->line, 1);
-        //printf("Blink number: %d\n", i + 1); // Print the current blink count
-        fflush(stdout);
-        TimeStampToBuffer(buffer, "Blink: ");
+        
+        // Get the current timestamp and store it in the array at index i
+        clock_gettime(CLOCK_REALTIME, &ts);  // Get current time
+        blinkTimes[i] = ts;
+    
+        // Sleep for 1 second
         preciseSleep(1); // Sleep for 1 second
         
         // Turn the LED off
         gpiod_line_set_value(openedPort->line, 0);
-        preciseSleep(1); // Sleep for 2 seconds
+        
+        // Sleep for 1 second
+        preciseSleep(1); // Sleep for 1 second
     }
-
+    
+    for (int i = 0; i < 20; i++)
+    {
+        TimeStampToBufferWithTime(buffer, "Blink: ", blinkTimes[i]);
+    }
+    
     // Clean up
     ClosePort(openedPort);
 }
