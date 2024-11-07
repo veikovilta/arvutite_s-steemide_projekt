@@ -17,7 +17,7 @@ void ledBlinking20(struct args_port* args, char** buffer)
     for (int i = 0; i < 20; i++) {
         // Turn the LED on
         gpiod_line_set_value(openedPort->line, 1);
-        printf("Blink number: %d\n", i + 1); // Print the current blink count
+        //printf("Blink number: %d\n", i + 1); // Print the current blink count
         fflush(stdout);
         TimeStampToBuffer(buffer, "Blink: ");
         preciseSleep(1); // Sleep for 1 second
