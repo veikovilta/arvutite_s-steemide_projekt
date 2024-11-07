@@ -364,7 +364,7 @@ const char* WaitForButtonAndSelectConfig(int i2cHandle) {
         	oledWriteText(i2cHandle, 1, 2, message);
 	}
 	
-	strcpy(lastPicked, *saatjaOrVastuvotja);
+	strcpy(lastPicked, saatjaOrVastuvotja);
 	
         preciseSleep(0.5);
 
