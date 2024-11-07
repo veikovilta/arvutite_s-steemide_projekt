@@ -81,3 +81,39 @@ void write_log_to_file(const char *buffer) {
     fclose(file);
     printf("Log written to %s\n", filename);
 }
+
+char* getCurrentTimestamp(const char *prefix) {
+    // Get the current time
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+
+    // Convert the seconds part to a human-readable format
+    struct tm *timeinfo = localtime(&ts.tv_sec);
+
+    // Format the timestamp part
+    char timestamp[30];
+    strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", timeinfo);
+    snprintf(timestamp + 19, sizeof(timestamp) - 19, ".%09ld", ts.tv_nsec);
+
+    // Calculate the total size needed for the prefix + timestamp + null terminator
+    size_t totalSize = strlen(prefix) + strlen(timestamp) + 1;
+
+    // Allocate memory for the result
+    char *buffer = (char *)malloc(totalSize);
+    if (buffer == NULL) {
+        fprintf(stderr, "Memory allocation failed.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // Combine the prefix and the timestamp into the buffer
+    snprintf(buffer, totalSize, "%s%s\n", prefix, timestamp);
+
+    return buffer;
+}
+
+void TimeStampToBuffer(char *buffer, const char* prefix)
+{
+    char *timeStampMessage = getCurrentTimestamp(prefix); 
+    append_to_buffer(buffer, timeStampMessage);
+    free(timeStampMessage); 
+}

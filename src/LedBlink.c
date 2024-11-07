@@ -6,10 +6,11 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <gpiod.h>
+#include "Files.h"
 #include <time.h>
 
 
-void ledBlinking20(struct args_port* args)
+void ledBlinking20(struct args_port* args, char* buffer)
 {
     struct port *openedPort = openPort(args->portPin, args->debugName, false); // 'true' for output
 
@@ -18,6 +19,7 @@ void ledBlinking20(struct args_port* args)
         gpiod_line_set_value(openedPort->line, 1);
         printf("Blink number: %d\n", i + 1); // Print the current blink count
         fflush(stdout);
+        TimeStampToBuffer(buffer, "Blink: ");
         preciseSleep(1); // Sleep for 1 second
         
         // Turn the LED off
@@ -50,14 +52,15 @@ void ledBlinking20(struct args_port* args)
     //~ return NULL;
 //~
 
-struct timespec ledBlinkOnce(struct args_port *newPort) {
+struct timespec ledBlinkOnce(struct args_port *newPort, char* buffer) {
     // Open the port for controlling the LED
-    struct port *openedPort = openPort(newPort->portPin, newPort->debugName, false); // 'true' for output
+    struct port *openedPort = openPort(newPort->portPin, newPort->debugName, false); // 'FALSE' for output
     static struct timespec blinkTime; // Use static to return a pointer safely
 
     // Turn the LED on
     gpiod_line_set_value(openedPort->line, 1);
     clock_gettime(CLOCK_REALTIME, &blinkTime);
+    TimeStampToBuffer(buffer, "First sync blink: ");
     preciseSleep(1);  // Sleep for 1 second
 
     // Turn the LED off

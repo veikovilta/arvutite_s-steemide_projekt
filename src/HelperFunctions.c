@@ -307,9 +307,6 @@ int ChronySync(int i2cHandle)
         }
         
     }
-    
-    printf("Syncronized\n");    
-
 
     return 0;
 }
@@ -360,12 +357,14 @@ const char* WaitForButtonAndSelectConfig(int i2cHandle) {
         if (lastPicked[0] == '\0') {
             oledWriteText(i2cHandle, 0, 0, "PRESS BUTTON TO PICK");
             oledWriteText(i2cHandle, 1, 2, message);
+            printf("%s\n", message); 
         }
         
         if(strcmp(saatjaOrVastuvotja, lastPicked) != 0){
-		oledClear(i2cHandle);
+		    oledClear(i2cHandle);
             oledWriteText(i2cHandle, 0, 0, "PRESS BUTTON TO PICK");
             oledWriteText(i2cHandle, 1, 2, message);
+            printf("%s\n", message); 
         }
         
 	    strcpy(lastPicked, saatjaOrVastuvotja);

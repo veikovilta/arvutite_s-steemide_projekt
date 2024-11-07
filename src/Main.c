@@ -19,21 +19,18 @@
 
 int main(void)
 {
-
 //##########################################################################
 
-    InstanceState = STARTING; 
+    InstanceState = STARTING;
+    char *buffer = NULL;
+
+    TimeStampToBuffer(buffer, "Start: ");
+
+//##########################################################################
 
     if (system("sudo systemctl start chrony") != 0) {
         perror("Failed to start chrony service");
     }
-
-
-//##########################################################################
-
-
-    char *buffer = NULL;
-
 
 //##########################################################################
 
@@ -41,7 +38,7 @@ int main(void)
     int i2cHandle = i2cInit("/dev/i2c-1", OLED_I2C_ADDR);
     if (i2cHandle < 0) return -1;
     
-    //char message[100] = "";  
+    char message[100] = "";  
     //char numberStr[20] = "";
 
     oledInit(i2cHandle);
@@ -59,6 +56,7 @@ int main(void)
     if (CreateButtonThread(i2cHandle, &buttonThread))
     {
         printf("Button thread created\n");
+        append_to_buffer(&buffer, "Button thread created\n");
     }
     
 
@@ -67,7 +65,9 @@ int main(void)
     InstanceState = PICKING_CONFIG; 
 
     const char* saatjaOrVastuvotja = WaitForButtonAndSelectConfig(i2cHandle);
-    printf("You have chosen: %s\n", saatjaOrVastuvotja); 
+    printf("You have chosen: %s\n", saatjaOrVastuvotja);
+    snprintf(message, sizeof(message), "Picked configuration: %s\n", saatjaOrVastuvotja);
+    append_to_buffer(&buffer, message); 
 
 
 //##########################################################################
@@ -81,6 +81,7 @@ int main(void)
 
     if(!synced){
         printf("Syncronized\n");
+        append_to_buffer(&buffer, "Syncronized\n");
         syncLedOpenedPort = ShowReady();
     }
 
@@ -101,14 +102,14 @@ int main(void)
         ledBlinkPort.debugName = "ledBlink";
         ledBlinkPort.inputOutput = false;
 
-        struct timespec firstblink = ledBlinkOnce(&ledBlinkPort);
+        struct timespec firstblink = ledBlinkOnce(&ledBlinkPort, buffer);
 
         // Print the time
         printf("LED blink time: %ld seconds and %ld nanoseconds\n", 
             (long)firstblink.tv_sec, (long)firstblink.tv_nsec);
         fflush(stdout);
 
-        /*
+        
         InstanceState = WAITING_NEXT_MINUTE_LED; 
 
         WaitForNextMinuteBlinker(firstblink); 
@@ -117,11 +118,20 @@ int main(void)
 
         printf("Start blinking\n");
         fflush(stdout);
+        oledClear(i2cHandle);
+        oledWriteText(i2cHandle, 0, 0, "BLINKING");
         
-        ledBlinking20(&ledBlinkPort);
+        ledBlinking20(&ledBlinkPort, buffer);
 
-        InstanceState = BLINKING_FINISHED; 
-        */
+        InstanceState = BLINKING_FINISHED;
+
+        oledClear(i2cHandle);
+        oledWriteText(i2cHandle, 0, 0, "FINISHED");
+        
+        preciseSleep(1); 
+
+        printf("Blinking finished\n"); 
+        TimeStampToBuffer(buffer, "Blinking finished: "); 
     }
     else if(!strcmp(saatjaOrVastuvotja, (const char*)"vastuvotja"))
     {
@@ -154,7 +164,7 @@ int main(void)
     oledWriteText(i2cHandle, 0, 0, "Program finished");
     oledWriteText(i2cHandle, 0, 2, "Shutting Down");
 
-    //write_log_to_file(buffer);
+    write_log_to_file(buffer);
     free(buffer);
 
     if (syncLedOpenedPort)
