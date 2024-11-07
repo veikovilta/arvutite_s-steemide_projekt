@@ -136,7 +136,7 @@ struct port* ShowReady(void)
     struct port *openedPort = openPort(GPIO_READY_LED, "GPIO PIN 23", false);
 
     if (openedPort == NULL) {
-        return;
+        return NULL;
     }
     // Display LED
     gpiod_line_set_value(openedPort->line, 1);
@@ -386,8 +386,7 @@ int CreateButtonThread(int i2cHandle, pthread_t* buttonThread) {
     args.debugName = "InputButton";
 	args.inputOutput = true;
 
-
-    if(pthread_create(&buttonThread, NULL, readButtonState_thread, (void*)&args) < 0)
+    if(pthread_create(buttonThread, NULL, readButtonState_thread, (void*)&args) < 0)
     {
         perror("Failed to create thread");
         oledClear(i2cHandle);

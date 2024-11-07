@@ -41,8 +41,8 @@ int main(void)
     int i2cHandle = i2cInit("/dev/i2c-1", OLED_I2C_ADDR);
     if (i2cHandle < 0) return -1;
     
-    char message[100] = "";  
-    char numberStr[20] = "";
+    //char message[100] = "";  
+    //char numberStr[20] = "";
 
     oledInit(i2cHandle);
     oledClear(i2cHandle);
@@ -74,13 +74,9 @@ int main(void)
     struct port* syncLedOpenedPort = NULL;
 
     int synced = ChronySync(i2cHandle);
-    
-    while (synced)
-    {
-        synced = ChronySync(i2cHandle);
-    }    
 
     if(!synced){
+        printf("Syncronized\n");
         syncLedOpenedPort = ShowReady();
     }
 
