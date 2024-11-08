@@ -132,7 +132,7 @@ int main(void)
 
         printf("Blinking finished\n"); 
         TimeStampToBuffer(&buffer, "Blinking finished: ");
-	/*
+        
         pthread_mutex_lock(&buttonLock);
         buttonPressed = 0;
         pthread_mutex_unlock(&buttonLock);
@@ -145,12 +145,11 @@ int main(void)
             {
                 printf("ENDED pressed\n");
 
-		break;
+				break;
             }
 
             preciseSleep(0.1);
         }
-	*/
         
     }
     else if(!strcmp(saatjaOrVastuvotja, (const char*)"vastuvotja"))

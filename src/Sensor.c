@@ -72,15 +72,15 @@ double* RegisterBlinks(int i2cHandle, char** buffer)
             preciseSleep(0.3);
         }
 
-        double* singleDelay = CalculateDelaySingle(timestamps[i], senderStartTime, i);
+        double singleDelay = CalculateDelaySingle(timestamps[i], senderStartTime, i);
 
-        if (!singleDelay)
+        if (singleDelay == -1.0)
         {
             continue;
         }
 
         TimeStampToBufferWithTime(buffer, "Seen at: ", timestamps[i]);
-        sprintf(numberStr, "delay: %.5f", *singleDelay);
+        sprintf(numberStr, "delay: %.5f", singleDelay);
         oledWriteText(i2cHandle, 0, 2, numberStr);
         append_to_buffer(buffer, numberStr); 
 
@@ -88,9 +88,6 @@ double* RegisterBlinks(int i2cHandle, char** buffer)
     }
 
     printf("Got all data\n");
-
-
-    //double delaysCalculated[BLINK_COUNT];
 
 	double *delaysCalculated = calculateDelays(timestamps, senderStartTime);
 
@@ -101,7 +98,7 @@ double* RegisterBlinks(int i2cHandle, char** buffer)
 	return delaysCalculated; 
 }
 
-double* CalculateDelaySingle(struct timespec timestamp, struct timespec senderStartTime, int numOfBlink)
+double CalculateDelaySingle(struct timespec timestamp, struct timespec senderStartTime, int numOfBlink)
 {
     double TimeFix = 0.0; // kui läheb syncist välja siis kasutan
         
@@ -113,12 +110,12 @@ double* CalculateDelaySingle(struct timespec timestamp, struct timespec senderSt
         (double)senderStartTime.tv_sec + 
         ((double)senderStartTime.tv_nsec / 1e9) +
         (numOfBlink * BLINK_INTERVAL) + TimeFix;
+        
+    double result = -1.0;  
     
-    double* result = NULL;
-
     if (sensorSawTimeSec > blinkStartTimeSec)
     {
-        *result = sensorSawTimeSec - blinkStartTimeSec;
+        result = sensorSawTimeSec - blinkStartTimeSec;
     }
 
     return result; 

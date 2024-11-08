@@ -10,7 +10,7 @@ double* calculateDelays(const struct timespec *timestamps,
 const struct timespec senderStartTime); 
 void setArrayToZero(double *array);
 double calculateAverage(double *data, int *count);
-double* CalculateDelaySingle(struct timespec timestamp, struct timespec senderStartTime, int numOfBlink); 
+double CalculateDelaySingle(struct timespec timestamp, struct timespec senderStartTime, int numOfBlink); 
 double* RegisterBlinks(int i2cHandle, char** buffer); 
 
 #endif

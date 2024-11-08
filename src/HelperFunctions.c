@@ -76,51 +76,54 @@ void preciseSleep(double seconds) {
     }
 }
 
-//fix it add debouncing and say when to use
 void* readButtonState_thread(void* arg) {
     struct args_port* args = (struct args_port*) arg;
     struct port *openedPort = openPort(args->portPin, args->debugName, args->inputOutput);
 
     pthread_cleanup_push((void(*)(void*))ClosePort, openedPort);
 
-
     if (openedPort == NULL) {
         fprintf(stderr, "Failed to open port.\n");
         return NULL;
     }
 
-    int stableCount = 0;
+    int debounceCount = 0;
     const int debounceThreshold = 3; // Require 3 stable reads
-    int value = 0;
-
-    while(1) {	
-        value = gpiod_line_get_value(openedPort->line);
-        if (value < 0) {
+    int buttonState = 0;
+    int prevButtonState = 0;
+	int lastReportedState = 0;
+	
+    while(1) {
+        buttonState = gpiod_line_get_value(openedPort->line);
+        if (buttonState < 0) {
             perror("Failed to read button state");
             break; // Exit the loop on error
         }
-
-        if (value == 1) {
-            stableCount++;
-		printf("PIP\n");
-        } else {
-            stableCount = 0;
+		
+        if (buttonState == prevButtonState) {
+			if (buttonState){
+				debounceCount++;
+		    }
         }
 
-        if (stableCount >= debounceThreshold) {
-            printf("Button is pressed!\n");
-            pthread_mutex_lock(&buttonLock);
-            buttonPressed = 1;
-            pthread_mutex_unlock(&buttonLock); 
-        } else {
-            //printf("Button is not pressed.\n");
+        if (debounceCount >= debounceThreshold && buttonState != lastReportedState) {
+
+            if (buttonState == 1) {
+                printf("Button is pressed!\n");
+                pthread_mutex_lock(&buttonLock);
+			    buttonPressed = 1;
+                pthread_mutex_unlock(&buttonLock);
+            }
+          
+            lastReportedState = buttonState;
+            debounceCount = 0;
         }
 
-        preciseSleep(0.05); // 50 ms delay
+        prevButtonState = buttonState;
+        preciseSleep(0.01); // 10 ms delay
     }
 
     pthread_cleanup_pop(1);
-
     return NULL;
 }
 
@@ -254,7 +257,7 @@ const char* checkButtonState(struct port* port1, struct port* port2) {
     } else if (state1 == 0 && state2 == 1) {
         return "vastuvotja";  // Button pressed for "vastuvotja"
     } else {
-        return "undefined";  // Undefined state
+        return "vastuvotja";  // Undefined state
     }
 }
 
@@ -389,6 +392,7 @@ const char* WaitForButtonAndSelectConfig(int i2cHandle) {
         //printf("%d\n", buttonPressed);
         if (buttonPressed) {
             buttonPressed = 0; 
+			pthread_mutex_unlock(&buttonLock); 
             break;
         }
         pthread_mutex_unlock(&buttonLock); 
