@@ -273,7 +273,7 @@ const char* checkButtonState(struct port* port1, struct port* port2) {
     } else if (state1 == 0 && state2 == 1) {
         return "vastuvotja";  // Button pressed for "vastuvotja"
     } else {
-        return "vastuvotja";  // Undefined state
+        return "undefined";  // Undefined state
     }
 }
 
@@ -284,8 +284,8 @@ const char* waitForButtonState(int port1, int port2) {
     
     const char* state = checkButtonState(openedPort1, openedPort2);
     //printf("Button state: %s\n", state);
-    usleep(500000);  // Delay for readability (500 ms)
-
+	preciseSleep(0.5);
+    
     ClosePort(openedPort1);
     ClosePort(openedPort2);
 
