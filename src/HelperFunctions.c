@@ -11,6 +11,7 @@
 #include "display.h"
 #include "Files.h"
 #include "State.h"
+#include <signal.h>
 #include "Main.h"
 
 
@@ -77,6 +78,16 @@ void preciseSleep(double seconds) {
     }
 }
 
+void signalHandler(int signum) {
+    printf("\nReceived signal %d, shutting down...\n", signum);
+    programRunning = 0;  // Set flag to stop the thread loop
+    pthread_join(buttonThread, NULL);  // Wait for the thread to finish
+
+    // Additional cleanup if needed
+    printf("Program terminated cleanly.\n");
+    exit(0);
+}
+
 void* readButtonState_thread(void* arg) {
     struct args_port* args = (struct args_port*) arg;
     struct port *openedPort = openPort(args->portPin, args->debugName, args->inputOutput);
@@ -95,7 +106,7 @@ void* readButtonState_thread(void* arg) {
 	int lastReportedState = 0;
 
 	
-    while(1) {
+    while(programRunning) {
         buttonState = gpiod_line_get_value(openedPort->line);
         if (buttonState < 0) {
             perror("Failed to read button state");
@@ -125,7 +136,7 @@ void* readButtonState_thread(void* arg) {
         preciseSleep(0.01); // 10 ms delay
     }
 
-    //pthread_cleanup_pop(1);
+    ClosePort(openedPort);	
     return NULL;
 }
 
