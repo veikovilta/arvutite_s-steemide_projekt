@@ -382,7 +382,7 @@ const char* WaitForButtonAndSelectConfig(int i2cHandle) {
     while (1) {
 
         // Wait for button state and get the selected config
-        saatjaOrVastuvotja = waitForButtonState(23, 24);
+        saatjaOrVastuvotja = waitForButtonState(24, 25);
         sprintf(message, "Selected:%s\n", saatjaOrVastuvotja);
 
         if (lastPicked[0] == '\0') {
