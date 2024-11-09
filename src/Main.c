@@ -7,6 +7,7 @@
 #include <time.h>
 #include <errno.h>
 #include <gpiod.h> 
+#include <signal.h> 
 #include "stdbool.h"
 #include "HelperFunctions.h"
 #include "display.h"
@@ -22,11 +23,13 @@ int main(void)
 {
 //##########################################################################
 
+	signal(SIGINT, signalHandler);
+
     InstanceState = STARTING;
     char *buffer = NULL;
-
+	
     TimeStampToBuffer(&buffer, "Start: ");
-
+	
 //##########################################################################
 
     if (system("sudo systemctl start chrony") != 0) {

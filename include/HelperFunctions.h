@@ -35,7 +35,6 @@ const char* checkButtonState(struct port* port1, struct port* port2);
 const char* waitForButtonState();
 void WaitForNextMinuteBlinker(struct timespec firstblink);
 const char* WaitForButtonAndSelectConfig(int i2cHandle);
-int CreateButtonThread(int i2cHandle, pthread_t* buttonThread);
 struct port* ShowReady(void);
 int IsButtonPressed(void);
 

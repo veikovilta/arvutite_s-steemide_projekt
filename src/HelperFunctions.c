@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -82,6 +83,7 @@ void signalHandler(int signum) {
     printf("\nReceived signal %d, shutting down...\n", signum);
     programRunning = 0;  // Set flag to stop the thread loop
     pthread_join(buttonThread, NULL);  // Wait for the thread to finish
+	pthread_mutex_destroy(&buttonLock);
 
     // Additional cleanup if needed
     printf("Program terminated cleanly.\n");
@@ -414,6 +416,7 @@ const char* WaitForButtonAndSelectConfig(int i2cHandle) {
     return saatjaOrVastuvotja;
 }
 
+/*
 int CreateButtonThread(int i2cHandle, pthread_t* buttonThread) {
 
     struct args_port args;
@@ -440,3 +443,4 @@ int CreateButtonThread(int i2cHandle, pthread_t* buttonThread) {
 
     return 0; 
 }
+*/
