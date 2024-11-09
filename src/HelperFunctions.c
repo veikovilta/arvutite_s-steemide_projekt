@@ -1,4 +1,5 @@
 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -85,12 +86,33 @@ void signalHandler(int signum) {
     pthread_join(buttonThread, NULL);  // Wait for the thread to finish
 	pthread_mutex_destroy(&buttonLock);
 	ShowReady(0);
-
+	
+	//pthread_join(oledThread, NULL);	
+    //pthread_mutex_destroy(&oledLock);
+	
     // Additional cleanup if needed
     printf("Program terminated cleanly.\n");
     exit(0);
 }
+/*
+void* oled_thread(void* arg)
+{
+	int i2cHandle = i2cInit("/dev/i2c-1", OLED_I2C_ADDR);
+	if (i2cHandle < 0) return -1;
 
+	while (programRunning)
+	{
+		if(bufferHasBeenUpdated)
+		{		
+			pthread_mutex_lock(&oledLock);
+			oledWriteText(i2cHandle, 0, 0, oledBuffer);
+
+		    pthread_mutex_unlock(&oledLock);
+		}
+		preciseSleep(0.5);    	
+	}
+}
+*/
 void* readButtonState_thread(void* arg) {
     struct args_port* args = (struct args_port*) arg;
     struct port *openedPort = openPort(args->portPin, args->debugName, args->inputOutput);
@@ -145,7 +167,7 @@ void* readButtonState_thread(void* arg) {
 
 void ClosePort(struct port* openedPort)
 {
-    gpiod_line_set_value(openedPort->line, 0);
+    //gpiod_line_set_value(openedPort->line, 0);
     gpiod_line_release(openedPort->line);
     gpiod_chip_close(openedPort->chip);
     free(openedPort);

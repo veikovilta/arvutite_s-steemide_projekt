@@ -1,3 +1,5 @@
+
+
 #ifndef HELPERFUNCTIONS_H
 #define HELPERFUNCTIONS_H
 
@@ -23,6 +25,15 @@ static volatile int programRunning = 1;  // Flag to control the thread loop
 
 static pthread_t buttonThread;
 
+/*
+static pthread_t oledThread;
+
+static volatile char oledBuffer[100];
+static volatile int bufferHasBeenUpdated = 0;
+static pthread_mutex_t oledLock;
+*/
+
+void* oled_thread(void* arg);
 void signalHandler(int signum);
 int ChronySync(int i2cHandle, char** buffer);
 void ClosePort(struct port* openedPort);

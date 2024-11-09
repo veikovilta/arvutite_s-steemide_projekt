@@ -1,4 +1,5 @@
 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -37,14 +38,29 @@ int main(void)
     }
 
 //##########################################################################
-
-
-    int i2cHandle = i2cInit("/dev/i2c-1", OLED_I2C_ADDR);
-    if (i2cHandle < 0) return -1;
     
     char message[100] = "";  
     //char numberStr[20] = "";
 
+	int i2cHandle = i2cInit("/dev/i2c-1", OLED_I2C_ADDR);
+	if (i2cHandle < 0) return -1;	
+	
+	/*
+    pthread_mutex_init(&oledLock, NULL);
+
+
+	if(pthread_create(&oledThread, NULL, oled_thread, NULL) < 0)
+	{
+	    perror("Failed to create thread");
+	    
+	    if (system("sudo shutdown -h now") != 0) {
+	        perror("Failed to shutdown");
+	    }
+	    return 1;
+	}
+
+	*/
+	
     oledInit(i2cHandle);
     oledClear(i2cHandle);
     oledWriteText(i2cHandle, 0, 0, "Program started");
@@ -229,6 +245,10 @@ int main(void)
 
     pthread_join(buttonThread, NULL);
     pthread_mutex_destroy(&buttonLock);
+
+	//pthread_join(oledThread, NULL);	
+    //pthread_mutex_destroy(&oledLock);
+	
 
     if (i2cHandle){
         close(i2cHandle);
