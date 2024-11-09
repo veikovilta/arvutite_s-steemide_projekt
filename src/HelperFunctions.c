@@ -9,6 +9,7 @@
 #include <gpiod.h>
 #include <string.h>
 #include "display.h"
+#include "Files.h"
 #include "State.h"
 #include "Main.h"
 
@@ -80,8 +81,8 @@ void* readButtonState_thread(void* arg) {
     struct args_port* args = (struct args_port*) arg;
     struct port *openedPort = openPort(args->portPin, args->debugName, args->inputOutput);
 
-    pthread_cleanup_push((void(*)(void*))ClosePort, openedPort);
-
+    //pthread_cleanup_push((void(*)(void*))ClosePort, openedPort);
+	
     if (openedPort == NULL) {
         fprintf(stderr, "Failed to open port.\n");
         return NULL;
@@ -92,6 +93,7 @@ void* readButtonState_thread(void* arg) {
     int buttonState = 0;
     int prevButtonState = 0;
 	int lastReportedState = 0;
+
 	
     while(1) {
         buttonState = gpiod_line_get_value(openedPort->line);
@@ -99,7 +101,7 @@ void* readButtonState_thread(void* arg) {
             perror("Failed to read button state");
             break; // Exit the loop on error
         }
-		
+
         if (buttonState == prevButtonState) {
 			if (buttonState){
 				debounceCount++;
@@ -123,7 +125,7 @@ void* readButtonState_thread(void* arg) {
         preciseSleep(0.01); // 10 ms delay
     }
 
-    pthread_cleanup_pop(1);
+    //pthread_cleanup_pop(1);
     return NULL;
 }
 
@@ -148,11 +150,11 @@ struct port* ShowReady(void)
     return openedPort; 
 }
 
-int CheckSync(int i2cHandle)
+int CheckSync(int i2cHandle, char** buffer)
 {
     FILE *fp;
     double systemOffset = 0.0;
-    char buffer[200];
+    char bufferStr[200];
     char numberStr[20] = "";
     char message[100] = ""; 
 
@@ -169,13 +171,13 @@ int CheckSync(int i2cHandle)
     }
 
     // Parse the output line by line
-    while (fgets(buffer, sizeof(buffer), fp) != NULL) 
+    while (fgets(bufferStr, sizeof(bufferStr), fp) != NULL) 
     {
         // Look for the line that contains "System time" to get the offset
-        if (strstr(buffer, "System time") != NULL) 
+        if (strstr(bufferStr, "System time") != NULL) 
         {
              // Extract the offset value (it will be the second value in the line)
-            if (sscanf(buffer, "System time     : %lf seconds", &systemOffset) != 1) {
+            if (sscanf(bufferStr, "System time     : %lf seconds", &systemOffset) != 1) {
                 fprintf(stderr, "Failed to parse system offset.\n");
                 break;
             }
@@ -191,8 +193,8 @@ int CheckSync(int i2cHandle)
 
     // Output the system offset to the user
     sprintf(numberStr, "%.7f", systemOffset);
-    snprintf(message, sizeof(message), "Offset: %7s", numberStr);
-    
+    snprintf(message, sizeof(message), "Offset: %7s\n", numberStr);
+    append_to_buffer(buffer, message);
     oledClear(i2cHandle);
     // Display a message on the OLED
     oledWriteText(i2cHandle, 0, 0, message);
@@ -276,7 +278,7 @@ const char* waitForButtonState(int port1, int port2) {
     return state;
 }
 
-int ChronySync(int i2cHandle)
+int ChronySync(int i2cHandle, char** buffer)
 {
     // message string
     char message[100] = "";  
@@ -289,7 +291,7 @@ int ChronySync(int i2cHandle)
     {
         preciseSleep(5);
     
-        if (CheckSync(i2cHandle) == 0)
+        if (CheckSync(i2cHandle, buffer) == 0)
         {
             break;
         }

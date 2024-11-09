@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -52,13 +53,29 @@ int main(void)
     pthread_mutex_init(&buttonLock, NULL);
 
     pthread_t buttonThread;
-
-    if (CreateButtonThread(i2cHandle, &buttonThread))
-    {
-        printf("Button thread created\n");
-        append_to_buffer(&buffer, "Button thread created\n");
-    }
     
+    struct args_port args;
+    args.portPin = GPIO_BUTTON;
+    args.debugName = "InputButton";
+  	args.inputOutput = true;
+  
+    if(pthread_create(&buttonThread, NULL, readButtonState_thread, (void*)&args) < 0)
+    {
+        perror("Failed to create thread");
+        oledClear(i2cHandle);
+        oledWriteText(i2cHandle, 0, 0, "ERROR Failed to create thread");
+        oledWriteText(i2cHandle, 2, 0, "Shutting Down");
+        
+        if (system("sudo shutdown -h now") != 0) {
+            perror("Failed to shutdown");
+            oledClear(i2cHandle);
+            oledWriteText(i2cHandle, 2, 0, "Shutting Down failed");
+        }
+        return 1;
+    }
+
+    printf("Button thread created\n");
+	append_to_buffer(&buffer, "Button thread created\n");
 
 //##########################################################################
 
@@ -77,7 +94,7 @@ int main(void)
 
     struct port* syncLedOpenedPort = NULL;
 
-    int synced = ChronySync(i2cHandle);
+    int synced = ChronySync(i2cHandle, &buffer);
 
     if(!synced){
         printf("Syncronized\n");
