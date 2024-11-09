@@ -84,6 +84,7 @@ void signalHandler(int signum) {
     programRunning = 0;  // Set flag to stop the thread loop
     pthread_join(buttonThread, NULL);  // Wait for the thread to finish
 	pthread_mutex_destroy(&buttonLock);
+	ShowReady(0);
 
     // Additional cleanup if needed
     printf("Program terminated cleanly.\n");
@@ -150,17 +151,17 @@ void ClosePort(struct port* openedPort)
     free(openedPort);
 }
 
-struct port* ShowReady(void)
+void ShowReady(int outputValue)
 {  
     struct port *openedPort = openPort(GPIO_READY_LED, "GPIO PIN 23", false);
 
     if (openedPort == NULL) {
-        return NULL;
+        return;
     }
     // Display LED
-    gpiod_line_set_value(openedPort->line, 1);
+    gpiod_line_set_value(openedPort->line, outputValue);
 
-    return openedPort; 
+    ClosePort(openedPort);
 }
 
 int CheckSync(int i2cHandle, char** buffer)

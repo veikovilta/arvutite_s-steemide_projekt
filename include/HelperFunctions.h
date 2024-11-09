@@ -20,6 +20,7 @@ struct args_port
 static volatile int buttonPressed = 0;
 static pthread_mutex_t buttonLock;
 static volatile int programRunning = 1;  // Flag to control the thread loop
+
 static pthread_t buttonThread;
 
 void signalHandler(int signum);
@@ -35,7 +36,7 @@ const char* checkButtonState(struct port* port1, struct port* port2);
 const char* waitForButtonState();
 void WaitForNextMinuteBlinker(struct timespec firstblink);
 const char* WaitForButtonAndSelectConfig(int i2cHandle);
-struct port* ShowReady(void);
+void ShowReady(int outputValue);
 int IsButtonPressed(void);
 
 #endif

@@ -92,15 +92,13 @@ int main(void)
 
 
     InstanceState = SYNCHRONIZING; 
-
-    struct port* syncLedOpenedPort = NULL;
-
+    
     int synced = ChronySync(i2cHandle, &buffer);
 
     if(!synced){
         printf("Syncronized\n");
         append_to_buffer(&buffer, "Syncronized\n");
-        syncLedOpenedPort = ShowReady();
+        ShowReady(1);
     }
 
 
@@ -227,10 +225,7 @@ int main(void)
     write_log_to_file(buffer);
     free(buffer);
 
-    if (syncLedOpenedPort)
-    {
-        ClosePort(syncLedOpenedPort);
-    }
+	ShowReady(0);
 
     pthread_join(buttonThread, NULL);
     pthread_mutex_destroy(&buttonLock);
