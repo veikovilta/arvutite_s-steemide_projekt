@@ -52,8 +52,6 @@ int main(void)
     
     pthread_mutex_init(&buttonLock, NULL);
 
-    pthread_t buttonThread;
-    
     struct args_port args;
     args.portPin = GPIO_BUTTON;
     args.debugName = "InputButton";
