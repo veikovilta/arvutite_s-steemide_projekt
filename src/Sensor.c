@@ -23,6 +23,8 @@ double* RegisterBlinks(int i2cHandle, char** buffer)
     printf("Got first blink, sleeping until next full minute\n");
     oledClear(i2cHandle);
     oledWriteText(i2cHandle, 0, 0, "Got first blink");
+    TimeStampToBuffer(buffer, "Got first blink: ");
+	
     struct timespec currentTime;
     // Get the current time with high precision
     clock_gettime(CLOCK_REALTIME, &currentTime);
@@ -80,7 +82,7 @@ double* RegisterBlinks(int i2cHandle, char** buffer)
         }
 
         TimeStampToBufferWithTime(buffer, "Seen at: ", timestamps[i]);
-        sprintf(numberStr, "delay: %.5f", singleDelay);
+        sprintf(numberStr, "Delay: %.5f ms\n", singleDelay);
         oledWriteText(i2cHandle, 0, 2, numberStr);
         append_to_buffer(buffer, numberStr); 
 
@@ -116,6 +118,8 @@ double CalculateDelaySingle(struct timespec timestamp, struct timespec senderSta
     if (sensorSawTimeSec > blinkStartTimeSec)
     {
         result = sensorSawTimeSec - blinkStartTimeSec;
+
+		result = result / 1000;
     }
 
     return result; 

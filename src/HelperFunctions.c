@@ -186,6 +186,54 @@ void ShowReady(int outputValue)
     ClosePort(openedPort);
 }
 
+void AddSystemOffsetToBuffer(char** buffer, int i2cHandle)
+{
+	FILE *fp;
+    double systemOffset = 0.0;
+    char bufferStr[200];
+    char numberStr[20] = "";
+    char message[100] = ""; 
+
+	// Run the "chronyc tracking" command and open a pipe to read the output
+	fp = popen("chronyc tracking", "r");
+	if (fp == NULL) 
+	{
+	    oledClear(i2cHandle); // Clear the display
+	    oledWriteText(i2cHandle, 0, 0, "Failed to run chronyc command.");
+	    oledWriteText(i2cHandle, 0, 2, "Shutting Down");
+	    printf("Error with chronyc, shutting down\n");
+	    //system ("sudo shutdown -h now");
+	   	return;
+	}
+
+	// Parse the output line by line
+    while (fgets(bufferStr, sizeof(bufferStr), fp) != NULL) 
+    {
+        // Look for the line that contains "System time" to get the offset
+        if (strstr(bufferStr, "System time") != NULL) 
+        {
+             // Extract the offset value (it will be the second value in the line)
+            if (sscanf(bufferStr, "System time     : %lf seconds", &systemOffset) != 1) {
+                fprintf(stderr, "Failed to parse system offset.\n");
+                break;
+            }
+            break;
+        }
+    }
+
+    // Close the pipe
+    if (pclose(fp) == -1) {
+        perror("pclose failed");
+        return;
+    }
+
+    // Output the system offset to the user
+    sprintf(numberStr, "%.7f", systemOffset);
+    snprintf(message, sizeof(message), "Clock offset: %7s\n", numberStr);
+
+	append_to_buffer(buffer, message);
+}
+
 int CheckSync(int i2cHandle, char** buffer)
 {
     FILE *fp;
@@ -233,7 +281,10 @@ int CheckSync(int i2cHandle, char** buffer)
     append_to_buffer(buffer, message);
     oledClear(i2cHandle);
     // Display a message on the OLED
-    oledWriteText(i2cHandle, 0, 0, message);
+    
+    oledWriteText(i2cHandle, 0, 0, "Syncronized");
+    
+    oledWriteText(i2cHandle, 0, 2, message);
 
     // Check synchronization status
     // piiriks 0.1 ms
@@ -320,13 +371,15 @@ int ChronySync(int i2cHandle, char** buffer)
     char message[100] = "";  
     char numberStr[20] = "";
 
+	oledWriteText(i2cHandle, 0, 0, "Syncronizing");    
+	
     // teeb 60 sekundilist checki kui hea kell on
     // 10min vähemalt
     int minutes = 0;
     while(1)
     {
         preciseSleep(5);
-    
+   		 
         if (CheckSync(i2cHandle, buffer) == 0)
         {
             break;
@@ -337,7 +390,10 @@ int ChronySync(int i2cHandle, char** buffer)
             sprintf(numberStr, "%d", minutes+5);
             snprintf(message, sizeof(message), "seconds waited : %s", numberStr);
             printf("%s\n", message);
-            oledWriteText(i2cHandle, 0, 0, message);
+            
+            oledWriteText(i2cHandle, 0, 0, "Syncronizing");
+                
+            oledWriteText(i2cHandle, 0, 2, message);
         }
         
         minutes+=5;

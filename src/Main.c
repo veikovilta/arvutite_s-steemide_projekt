@@ -23,6 +23,7 @@
 int main(void)
 {
 //##########################################################################
+	ShowReady(0);
 
 	signal(SIGINT, signalHandler);
 
@@ -107,7 +108,10 @@ int main(void)
 //##########################################################################
 
 
+	oledClear(i2cHandle);
     InstanceState = SYNCHRONIZING; 
+	printf("Syncronizing\n");
+	TimeStampToBuffer(&buffer, "Start syncronizing: ");
     
     int synced = ChronySync(i2cHandle, &buffer);
 
@@ -207,8 +211,7 @@ int main(void)
         oledWriteText(i2cHandle, 0, 0, averageDelayStr);
 
         TimeStampToBuffer(&buffer, "Sensor finished: "); 
-	preciseSleep(3); 
-	/*
+	
         pthread_mutex_lock(&buttonLock);
         buttonPressed = 0;
         pthread_mutex_unlock(&buttonLock);
@@ -224,7 +227,7 @@ int main(void)
 
             preciseSleep(0.1);
         }
-	*/
+	
     }
 
 
@@ -236,8 +239,9 @@ int main(void)
     oledWriteText(i2cHandle, 0, 2, "Shutting Down");
     printf("Program finished\n"); 
 
+	AddSystemOffsetToBuffer(&buffer, i2cHandle);	
     TimeStampToBuffer(&buffer, "End: "); 
-
+    
     write_log_to_file(buffer);
     free(buffer);
 

@@ -1,5 +1,6 @@
 
 
+
 #ifndef HELPERFUNCTIONS_H
 #define HELPERFUNCTIONS_H
 
@@ -33,6 +34,7 @@ static volatile int bufferHasBeenUpdated = 0;
 static pthread_mutex_t oledLock;
 */
 
+void AddSystemOffsetToBuffer(char** buffer, int i2cHandle);
 void* oled_thread(void* arg);
 void signalHandler(int signum);
 int ChronySync(int i2cHandle, char** buffer);
