@@ -1,2 +1,6 @@
 # arvutite_s-steemide_projekt
-### kk
+### Arvutite ja süsteemide projekti ainega seoses loodud projekt.
+
+Autorid : Veiko Vilta, Kaur Andro Orgusaar
+
+
