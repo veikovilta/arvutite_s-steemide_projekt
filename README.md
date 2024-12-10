@@ -1,6 +1,6 @@
 # Arvutisüsteemide projekt
 
-See projekt on mõeldud Raspberry pi4B kasutamiseks. 
+See projekt on mõeldud kasutamiseks viite mõõtmiseks kasutades raspberry pi4B-d. 
 
 Projekt kasutab I2C-põhist OLED-ekraani juhtimist, GPIO pin’ide haldust, multithreading'ut ning sensori põhist andmetöötlust. 
 Rakendus võimaldab töötada kahes režiimis: kas saatjana ("Saatja") või vastuvõtjana ("Vastuvõtja").
