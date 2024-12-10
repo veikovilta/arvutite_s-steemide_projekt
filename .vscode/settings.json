@@ -1,5 +1,11 @@
 {
     "files.associations": {
-        "stdlib.h": "c"
-    }
+        "stdlib.h": "c",
+        "stdbool.h": "c",
+        "time.h": "c",
+        "display.h": "c",
+        "unistd.h": "c"
+    },
+    "makefile.configureOnOpen": false,
+    "ros.distro": "humble"
 }
