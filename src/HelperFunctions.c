@@ -355,14 +355,16 @@ const char* waitForButtonState(int port1, int port2) {
     struct port* openedPort1 = openPort(port1, "Port 1", true);  // Pin for saatja
     struct port* openedPort2 = openPort(port2, "Port 2", true);  // Pin for vastuvotja
     
-    const char* state = checkButtonState(openedPort1, openedPort2);
+    //const char* state = checkButtonState(openedPort1, openedPort2);
+	
+
     //printf("Button state: %s\n", state);
 	preciseSleep(0.5);
     
     ClosePort(openedPort1);
     ClosePort(openedPort2);
 
-    return state;
+    return "saatja";
 }
 
 int ChronySync(int i2cHandle, char** buffer)

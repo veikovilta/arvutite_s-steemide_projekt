@@ -49,7 +49,7 @@ void append_to_buffer(char **buffer, const char *data) {
 
 void write_log_to_file(const char *buffer) {
     // Step 1: Create the log directory if it doesn't exist
-    const char *log_dir = "../log";
+    const char *log_dir = "../log/revalTesting";
     struct stat st = {0};
 
     if (stat(log_dir, &st) == -1) {
@@ -65,7 +65,7 @@ void write_log_to_file(const char *buffer) {
     struct tm *t = localtime(&now);
 
     // Format filename as "log_<YYYY-MM-DD>.txt" in the log directory
-    strftime(filename, sizeof(filename), "../log/log_%Y-%m-%d_%H-%M-%S.txt", t);
+    strftime(filename, sizeof(filename), "../log/revalTesting/log_%Y-%m-%d_%H-%M-%S.txt", t);
     
     // Step 3: Open the file for writing
     FILE *file = fopen(filename, "w");

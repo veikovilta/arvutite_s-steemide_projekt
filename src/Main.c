@@ -99,11 +99,11 @@ int main(void)
 
     InstanceState = PICKING_CONFIG; 
 
-    const char* saatjaOrVastuvotja = WaitForButtonAndSelectConfig(i2cHandle);
-    printf("You have chosen: %s\n", saatjaOrVastuvotja);
-    snprintf(message, sizeof(message), "Picked configuration: %s\n", saatjaOrVastuvotja);
-    append_to_buffer(&buffer, message); 
-
+    //const char* saatjaOrVastuvotja = WaitForButtonAndSelectConfig(i2cHandle);
+    //printf("You have chosen: %s\n", saatjaOrVastuvotja);
+    //snprintf(message, sizeof(message), "Picked configuration: %s\n", saatjaOrVastuvotja);
+    //append_to_buffer(&buffer, message); 
+	const char* saatjaOrVastuvotja = "vastuvotja";
 
 //##########################################################################
 
@@ -175,6 +175,8 @@ int main(void)
 
         oledWriteText(i2cHandle, 0, 2, "PRESS BTN TO END");
 
+
+		/*
         while (1)
         {
             if (IsButtonPressed())
@@ -186,6 +188,7 @@ int main(void)
 
             preciseSleep(0.1);
         }
+        */
         
     }
     else if(!strcmp(saatjaOrVastuvotja, (const char*)"vastuvotja"))
@@ -203,12 +206,12 @@ int main(void)
         double averageDelay = calculateAverage(delaysCalculated, &numOfValidCalculations); 
         char averageDelayStr[50]; 
     
-        sprintf(averageDelayStr, "Average Delay: %.7f\n", averageDelay); // Format average delay
+        sprintf(averageDelayStr, "Average: %.7f\n", averageDelay); // Format average delay
         printf("%s\n",averageDelayStr);
         append_to_buffer(&buffer, averageDelayStr); 
 
         oledClear(i2cHandle);
-        oledWriteText(i2cHandle, 0, 0, averageDelayStr);
+        oledWriteText(i2cHandle, 0, 4, averageDelayStr);
 
         TimeStampToBuffer(&buffer, "Sensor finished: "); 
 	
@@ -216,8 +219,8 @@ int main(void)
         buttonPressed = 0;
         pthread_mutex_unlock(&buttonLock);
 
-        oledWriteText(i2cHandle, 0, 2, "PRESS BTN TO END");
-
+        //oledWriteText(i2cHandle, 0, 2, "PRESS BTN TO END");
+		/*
         while (1)
         {
             if (IsButtonPressed())
@@ -227,6 +230,7 @@ int main(void)
 
             preciseSleep(0.1);
         }
+        */
 	
     }
 
@@ -234,7 +238,7 @@ int main(void)
 //##########################################################################
 
 
-    oledClear(i2cHandle);
+    //oledClear(i2cHandle);
     oledWriteText(i2cHandle, 0, 0, "Program finished");
     oledWriteText(i2cHandle, 0, 2, "Shutting Down");
     printf("Program finished\n"); 
@@ -257,8 +261,6 @@ int main(void)
     if (i2cHandle){
         close(i2cHandle);
     }
-
-
 
     /*if (system ("sudo shutdown -h now") != 0) {
         perror("Failed to shutdown");

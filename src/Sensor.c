@@ -47,8 +47,8 @@ double* RegisterBlinks(int i2cHandle, char** buffer)
         
         preciseSleep(0.0001);
     }
-    oledClear(i2cHandle);
-    oledWriteText(i2cHandle, 0, 0, "Got :");
+    //oledClear(i2cHandle);
+    //oledWriteText(i2cHandle, 0, 0, "Got :");
     
     struct timespec senderStartTime; 
     
@@ -73,13 +73,15 @@ double* RegisterBlinks(int i2cHandle, char** buffer)
         {
             preciseSleep(0.3);
         }
-
+		
         double singleDelay = CalculateDelaySingle(timestamps[i], senderStartTime, i);
 
+		/*
         if (singleDelay == -1.0)
         {
             continue;
         }
+        */
 
         TimeStampToBufferWithTime(buffer, "Seen at: ", timestamps[i]);
         sprintf(numberStr, "Delay: %.5f ms\n", singleDelay);
@@ -112,14 +114,14 @@ double CalculateDelaySingle(struct timespec timestamp, struct timespec senderSta
         (double)senderStartTime.tv_sec + 
         ((double)senderStartTime.tv_nsec / 1e9) +
         (numOfBlink * BLINK_INTERVAL) + TimeFix;
-        
+    
     double result = -1.0;  
     
     if (sensorSawTimeSec > blinkStartTimeSec)
     {
         result = sensorSawTimeSec - blinkStartTimeSec;
 
-		result = result / 1000;
+		result = result * 1000 - (numOfBlink * 0.0002) ;
     }
 
     return result; 

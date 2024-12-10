@@ -27,13 +27,13 @@ void ledBlinking20(struct args_port* args, char** buffer)
         blinkTimes[i] = ts;
     
         // Sleep for 1 second
-        preciseSleep(1); // Sleep for 1 second
+        preciseSleep(0.25); // Sleep for 1 second
         
         // Turn the LED off
         gpiod_line_set_value(openedPort->line, 0);
         
         // Sleep for 1 second
-        preciseSleep(1); // Sleep for 1 second
+        preciseSleep(1.75); // Sleep for 1 second
     }
     
     for (int i = 0; i < 20; i++)

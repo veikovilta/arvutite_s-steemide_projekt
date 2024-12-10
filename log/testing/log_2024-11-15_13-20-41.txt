@@ -1,0 +1,15 @@
+Start: 2024-11-15 13:18:15.317155703
+Button thread created
+Start syncronizing: 2024-11-15 13:18:17.970701865
+Offset: 0.0002065
+Offset: 0.0000046
+Syncronized
+Sensor program start: 2024-11-15 13:18:29.933843496
+Got first blink: 2024-11-15 13:18:56.686252117
+Sender start time: 2024-11-15 13:20:00.785300783
+Seen at: 2024-11-15 13:20:00.785393640
+Delay: 0.00000 ms
+Average Delay: 0.0000930
+Sensor finished: 2024-11-15 13:20:40.437541059
+Clock offset: 0.0000023
+End: 2024-11-15 13:20:41.434112368
