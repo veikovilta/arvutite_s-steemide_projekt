@@ -9,16 +9,37 @@
 #include "Files.h"
 #include <time.h>
 
+void ledBlinkingCalibration(int blinkCount)
+{
+    struct port *openedPort = openPort(GPIO_LINE_MAIN_BLINK, "debug", false); // 'true' for output
+
+    for (int i = 0; i < blinkCount; i++) {
+        // Turn the LED on
+        gpiod_line_set_value(openedPort->line, 1);
+        
+        // Sleep for 1 second
+        preciseSleep(0.25); // Sleep for 1 second
+        
+        // Turn the LED off
+        gpiod_line_set_value(openedPort->line, 0);
+        
+        // Sleep for 1 second
+        preciseSleep(1.75); // Sleep for 1 second
+    }
+    
+    // Clean up
+    ClosePort(openedPort);
+}
 
 void ledBlinking20(struct args_port* args, char** buffer)
 {
     struct port *openedPort = openPort(args->portPin, args->debugName, false); // 'true' for output
 
     // Array to store timestamps (local variable inside the loop)
-    struct timespec blinkTimes[20];
+    struct timespec blinkTimes[BLINK_COUNT_MAIN_PROGRAM];
     struct timespec ts;
     
-    for (int i = 0; i < 20; i++) {
+    for (int i = 0; i < BLINK_COUNT_MAIN_PROGRAM; i++) {
         // Turn the LED on
         gpiod_line_set_value(openedPort->line, 1);
         
@@ -36,7 +57,7 @@ void ledBlinking20(struct args_port* args, char** buffer)
         preciseSleep(1.75); // Sleep for 1 second
     }
     
-    for (int i = 0; i < 20; i++)
+    for (int i = 0; i < BLINK_COUNT_MAIN_PROGRAM; i++)
     {
         TimeStampToBufferWithTime(buffer, "Blink: ", blinkTimes[i]);
     }

@@ -350,21 +350,37 @@ const char* checkButtonState(struct port* port1, struct port* port2) {
     }
 }
 
-const char* waitForButtonState(int port1, int port2) {
+const char* waitForButtonState(int port1, int port2, const char* state1Value, const char* state2Value) 
+{
     
     struct port* openedPort1 = openPort(port1, "Port 1", true);  // Pin for saatja
     struct port* openedPort2 = openPort(port2, "Port 2", true);  // Pin for vastuvotja
     
-    //const char* state = checkButtonState(openedPort1, openedPort2);
-	
+    int state1 = gpiod_line_get_value(openedPort1->line);
+    int state2 = gpiod_line_get_value(openedPort2->line);
 
+    if (state1 < 0 || state2 < 0) {
+        perror("Failed to read GPIO line value");
+        return "error";
+    }
+
+    // Determine the button state
+    if (state1 == 1 && state2 == 0)
+    {
+        return state1Value;  // Button pressed for "saatja"
+    } 
+    else if (state1 == 0 && state2 == 1) 
+    {
+        return state2Value;  // Button pressed for "vastuvotja"
+    } 
+    else
     //printf("Button state: %s\n", state);
 	preciseSleep(0.5);
     
     ClosePort(openedPort1);
     ClosePort(openedPort2);
 
-    return "saatja";
+    return "undefined";  // Undefined state
 }
 
 int ChronySync(int i2cHandle, char** buffer)
@@ -451,8 +467,9 @@ void WaitForNextMinuteBlinker(struct timespec firstblink) {
     }
 }
 
-const char* WaitForButtonAndSelectConfig(int i2cHandle) {
-    char* saatjaOrVastuvotja;
+const char* WaitForButtonAndSelectConfig(int i2cHandle, const char* state1Value, const char* state2Value) 
+{
+    char* value;
     char message[100] = "";
     char lastPicked[30];
     // Lock and reset the buttonPressed flag
@@ -463,8 +480,8 @@ const char* WaitForButtonAndSelectConfig(int i2cHandle) {
     while (1) {
 
         // Wait for button state and get the selected config
-        saatjaOrVastuvotja = waitForButtonState(24, 25);
-        sprintf(message, "Selected:%s\n", saatjaOrVastuvotja);
+        value = waitForButtonState(24, 25, state1Value, state2Value);
+        sprintf(message, "Selected:%s\n", value);
 
         if (lastPicked[0] == '\0') {
             oledWriteText(i2cHandle, 0, 0, "PRESS BUTTON TO PICK");
@@ -472,14 +489,14 @@ const char* WaitForButtonAndSelectConfig(int i2cHandle) {
             printf("%s\n", message); 
         }
         
-        if(strcmp(saatjaOrVastuvotja, lastPicked) != 0){
+        if(strcmp(value, lastPicked) != 0){
 		    oledClear(i2cHandle);
             oledWriteText(i2cHandle, 0, 0, "PRESS BUTTON TO PICK");
             oledWriteText(i2cHandle, 1, 2, message);
             printf("%s\n", message); 
         }
         
-	    strcpy(lastPicked, saatjaOrVastuvotja);
+	    strcpy(lastPicked, value);
 	
         preciseSleep(0.5);
 
@@ -494,7 +511,7 @@ const char* WaitForButtonAndSelectConfig(int i2cHandle) {
         pthread_mutex_unlock(&buttonLock); 
     }
 
-    return saatjaOrVastuvotja;
+    return value;
 }
 
 /*

@@ -7,7 +7,33 @@
 #include "HelperFunctions.h"
 #include "display.h"
 #include "Files.h"
+#include "LedBlink.h"
 
+int CountBlinks(int i2cHandle)
+{
+    int blinkCount = 0; 
+    struct port *openedPort = openPort(GPIO_PIN_LED, "GPIO PIN 22", true);
+    
+    for (int i = 0; i < BLINK_COUNT_CALIBRATION; i++) {
+        // Wait for the GPIO pin to go HIGH
+        while (gpiod_line_get_value(openedPort->line) == 0) 
+        {
+            preciseSleep(0.001);  
+        }
+
+        // Wait for the GPIO pin to go LOW
+        while (gpiod_line_get_value(openedPort->line) == 1) 
+        {
+            preciseSleep(0.3);
+        }
+
+        blinkCount++;
+    }
+
+    ClosePort(openedPort);
+	
+	return blinkCount; 
+}
 
 double* RegisterBlinks(int i2cHandle, char** buffer)
 {
