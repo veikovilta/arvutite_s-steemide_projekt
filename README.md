@@ -61,3 +61,60 @@ Projekt vajab järgmisi teeke ja raamatukogusid:
 
 ---
 
+
+
+
+
+
+#### Lisa  Tootmise ja seadistamise juhend
+Käesolev projekt on loodud eesmärgiga testida lahendust, mida saaks kasutada hilistuse mõõtmiseks vajalike seadmete tootmisel. Selles peatükis on esitatud ka lühike juhend seadmete valmistamiseks ja seadistamiseks.
+
+## .1  Komponentide hankimine
+Tootmise esimeseks sammuks on vajalike komponentide hankimine, mille loetelu on toodud lisas 3. Lisaks on lisas esitatud ka trükkplaadi ja seadme korpuse loomise skeemid ning vajalikud failid. Kõik vastavad failid on kättesaadavad GitHubi repositooriumis, mille link on toodud lisas 2.
+
+## .2  Trükkplaadi tootmine ja jootmine
+Trükkplaadi valmistamiseks on saadaval Gerber-failid (pakitud .rar formaadis), mida saab edastada trükkplaadi tootmise ettevõttele, kes valmistab plaadi vastavalt spetsifikatsioonidele.
+Kui trükkplaat on valmis, tuleb sellele joota komponendid vastavalt PCB skeemis toodud juhistele.
+
+## .3  Seadme kokkupanek
+Jootmise järgselt tuleb kokku monteerida järgmised komponendid:
+•	Trükkplaat
+•	PoE-HAT moodul
+•	Raspberry Pi 4B
+Ühendamiseks kasutatakse vastavaid ühenduslülisid ja pin-päiseid. Allpool on esitatud joonis (joonis X), mis illustreerib ühenduste korrektset paigutust.
+
+
+
+Kui seadme riistvara on kokkupandud, saab liikuda tarkvara paigaldamise juurde.
+
+## .4 Tarkvara paigaldamine ja seadistamine
+Seadme tarkvara toimimiseks on vaja paigaldada Raspberry Pi operatsioonisüsteem, laadida alla programmi failid ning seadistada Chrony ajasünkroonimine.
+
+## .4.1  Operatsioonisüsteemi paigaldamine
+Operatsioonisüsteemi paigaldamiseks tuleb kasutada Raspberry Pi Imager-it. Kasutaja saab valida kas graafilise liidesega või ilma liideseta operatsioonisüsteemi – viimane võib olla veidi kiirem.
+
+## .4.2  Chrony sünkroniseerimise seadistamine
+Pärast operatsioonisüsteemi paigaldamist tuleb käivitada järgmised käsud:
+sudo apt update
+sudo apt install chrony -y
+sudo nano /etc/chrony/chrony.conf
+Seejärel tuleb chrony.conf faili sisu asendada GitHubis olevaga. Pärast faili muutmist tuleb käivitada:
+sudo systemctl restart chronyd
+sudo systemctl enable chronyd
+Kontrollimaks, kas Chrony töötab korrektselt, võib kasutada käske:
+systemctl status chronyd
+chronyc tracking
+Kui väljundis kuvatakse sünkroniseeritud serverid ja vastav ajakõrvalekalle, võib eeldada, et Chrony töötab korrektselt.
+
+(Siia võib lisada illustratsiooni või näidispildi korrektse väljundi kohta.)
+
+## .5  Programmi paigaldamine ja automaatkäivituse seadistamine
+Viimase sammuna tuleb alla laadida rakenduse failid GitHubist ning seadistada need automaatselt käivituma igal süsteemi käivitamisel.
+sudo nano /etc/rc.local
+Faili lõppu tuleb lisada programmi asukoht, näiteks:
+/home/pi/Programm &
+Pärast muudatuste salvestamist tuleb Raspberry Pi taaskäivitada:
+sudo reboot
+Seejärel saab testida, kas lahendus töötab ootuspäraselt.
+
+
