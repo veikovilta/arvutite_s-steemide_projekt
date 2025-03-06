@@ -66,7 +66,7 @@ Projekt vajab järgmisi teeke ja raamatukogusid:
 
 
 
-# Lisa  Tootmise ja seadistamise juhend
+# Lisa : Tootmise ja seadistamise juhend
 Käesolev projekt on loodud eesmärgiga testida lahendust, mida saaks kasutada hilistuse mõõtmiseks vajalike seadmete tootmisel. Selles peatükis on esitatud ka lühike juhend seadmete valmistamiseks ja seadistamiseks.
 
 ## .1  Komponentide hankimine
