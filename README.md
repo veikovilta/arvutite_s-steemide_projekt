@@ -66,7 +66,7 @@ Projekt vajab järgmisi teeke ja raamatukogusid:
 
 
 
-#### Lisa  Tootmise ja seadistamise juhend
+# Lisa  Tootmise ja seadistamise juhend
 Käesolev projekt on loodud eesmärgiga testida lahendust, mida saaks kasutada hilistuse mõõtmiseks vajalike seadmete tootmisel. Selles peatükis on esitatud ka lühike juhend seadmete valmistamiseks ja seadistamiseks.
 
 ## .1  Komponentide hankimine
@@ -90,10 +90,10 @@ Kui seadme riistvara on kokkupandud, saab liikuda tarkvara paigaldamise juurde.
 ## .4 Tarkvara paigaldamine ja seadistamine
 Seadme tarkvara toimimiseks on vaja paigaldada Raspberry Pi operatsioonisüsteem, laadida alla programmi failid ning seadistada Chrony ajasünkroonimine.
 
-## .4.1  Operatsioonisüsteemi paigaldamine
+### .4.1  Operatsioonisüsteemi paigaldamine
 Operatsioonisüsteemi paigaldamiseks tuleb kasutada Raspberry Pi Imager-it. Kasutaja saab valida kas graafilise liidesega või ilma liideseta operatsioonisüsteemi – viimane võib olla veidi kiirem.
 
-## .4.2  Chrony sünkroniseerimise seadistamine
+### .4.2  Chrony sünkroniseerimise seadistamine
 Pärast operatsioonisüsteemi paigaldamist tuleb käivitada järgmised käsud:
 sudo apt update
 sudo apt install chrony -y
