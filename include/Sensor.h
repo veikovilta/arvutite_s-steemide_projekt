@@ -12,5 +12,6 @@ void setArrayToZero(double *array);
 double calculateAverage(double *data, int *count);
 double CalculateDelaySingle(struct timespec timestamp, struct timespec senderStartTime, int numOfBlink); 
 double* RegisterBlinks(int i2cHandle, char** buffer); 
+int CountBlinks(int i2cHandle);
 
 #endif
