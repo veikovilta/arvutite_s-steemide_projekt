@@ -21,7 +21,7 @@ enum ProgramState {
     PROGRAM_FINISHED
 };
 
-//static enum ProgramState InstanceState = UNDEFINEDSTATE;  
+static enum ProgramState InstanceState = UNDEFINEDSTATE;  
 
 enum ChosenConfig {
     UNDEFINED,
@@ -29,6 +29,6 @@ enum ChosenConfig {
     VASTUVOTJA
 };
 
-//static enum ChosenConfig Saatja_Vastuvotja_State = UNDEFINED;   
+static enum ChosenConfig Saatja_Vastuvotja_State = UNDEFINED;   
 
 #endif

@@ -40,7 +40,6 @@ int main(void)
 
 //##########################################################################
     
-    char message[100] = "";  
     //char numberStr[20] = "";
 
 	int i2cHandle = i2cInit("/dev/i2c-1", OLED_I2C_ADDR);
@@ -210,6 +209,8 @@ int main(void)
         printf("%s\n",averageDelayStr);
         append_to_buffer(&buffer, averageDelayStr); 
 
+        free(delaysCalculated);
+
         oledClear(i2cHandle);
         oledWriteText(i2cHandle, 0, 4, averageDelayStr);
 
@@ -237,8 +238,6 @@ int main(void)
 
 //##########################################################################
 
-
-    free(delaysCalculated);
     //oledClear(i2cHandle);
     oledWriteText(i2cHandle, 0, 0, "Program finished");
     oledWriteText(i2cHandle, 0, 2, "Shutting Down");

@@ -46,7 +46,7 @@ const char* waitForButtonState();
 void WaitForNextMinuteBlinker(struct timespec firstblink);
 void ShowReady(int outputValue);
 int IsButtonPressed(void);
-const char* waitForButtonState(int port1, int port2, const char* state1Value, const char* state2Value) 
-const char* WaitForButtonAndSelectConfig(int i2cHandle, const char* state1Value, const char* state2Value) 
-
+const char* waitForButtonState(int port1, int port2, const char* state1Value, const char* state2Value); 
+const char* WaitForButtonAndSelectConfig(int i2cHandle, const char* state1Value, const char* state2Value);
+const char* checkButtonState(struct port* port1, struct port* port2);
 #endif
