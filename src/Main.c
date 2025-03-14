@@ -238,6 +238,7 @@ int main(void)
 //##########################################################################
 
 
+    free(delaysCalculated);
     //oledClear(i2cHandle);
     oledWriteText(i2cHandle, 0, 0, "Program finished");
     oledWriteText(i2cHandle, 0, 2, "Shutting Down");
