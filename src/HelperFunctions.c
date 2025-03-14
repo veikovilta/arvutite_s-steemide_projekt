@@ -65,7 +65,7 @@ void preciseSleep(double seconds) {
 
     // Break down the seconds into whole seconds and nanoseconds
     req.tv_sec = (time_t)seconds; // Get the whole seconds part
-    req.tv_nsec = (long)((seconds - req.tv_sec) * 1e9); // Convert the fractional part to nanoseconds
+    req.tv_nsec = (long)((seconds - (double)req.tv_sec) * 1e9); // Convert the fractional part to nanoseconds
 
     int ret = clock_nanosleep(CLOCK_REALTIME, 0, &req, &rem);
 

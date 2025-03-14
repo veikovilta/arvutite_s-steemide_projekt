@@ -11,6 +11,7 @@
 
 int CountBlinks(int i2cHandle)
 {
+    (void)i2cHandle;
     int blinkCount = 0; 
     struct port *openedPort = openPort(GPIO_PIN_LED, "GPIO PIN 22", true);
     

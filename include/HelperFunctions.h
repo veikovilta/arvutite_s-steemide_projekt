@@ -42,7 +42,7 @@ void printDelaysToFile(const char *filename, double *data, int count, double ave
 void* readButtonState_thread(void* arg);
 int CheckSync(int i2cHandle, char** buffer);
 const char* checkButtonState(struct port* port1, struct port* port2);
-const char* waitForButtonState();
+//const char* waitForButtonState();
 void WaitForNextMinuteBlinker(struct timespec firstblink);
 void ShowReady(int outputValue);
 int IsButtonPressed(void);

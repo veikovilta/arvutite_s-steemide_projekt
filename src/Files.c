@@ -10,7 +10,7 @@ void append_to_buffer(char **buffer, const char *data) {
     static int current_size = 0;
     static int buffer_capacity = 0;
 
-    int data_length = strlen(data);
+    int data_length = (int)strlen(data);
 
     // Initialize the buffer if it's the first call
     if (*buffer == NULL) {
@@ -31,7 +31,7 @@ void append_to_buffer(char **buffer, const char *data) {
             new_capacity *= 2;
         }
 
-        char *new_buffer = realloc(*buffer, new_capacity);
+        char *new_buffer = realloc(*buffer, (size_t)new_capacity);
         if (!new_buffer) {
             fprintf(stderr, "Failed to reallocate memory for buffer.\n");
             free(*buffer);
