@@ -1,6 +1,10 @@
 #ifndef STATE_H
 #define STATE_H
 
+#include <stdint.h>
+#include <pthread.h>
+
+
 enum ProgramState {
     UNDEFINEDSTATE,
     STARTING,
@@ -17,14 +21,14 @@ enum ProgramState {
     PROGRAM_FINISHED
 };
 
-static enum ProgramState InstanceState = UNDEFINEDSTATE;  
+//static enum ProgramState InstanceState = UNDEFINEDSTATE;  
 
-enum ChosenConfig{
+enum ChosenConfig {
     UNDEFINED,
     SAATJA,
-    VASTUVOTJA,
+    VASTUVOTJA
 };
 
-static enum ChosenConfig Saatja_Vastuvotja_State = UNDEFINED;   
+//static enum ChosenConfig Saatja_Vastuvotja_State = UNDEFINED;   
 
 #endif

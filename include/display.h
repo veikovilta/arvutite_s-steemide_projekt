@@ -2,7 +2,13 @@
 #define DISPLAY_H
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <linux/i2c-dev.h>
+#include <sys/ioctl.h>
+#include <gpiod.h>
 
 // I2C address for the OLED display
 #define OLED_I2C_ADDR 0x3C
