@@ -18,7 +18,7 @@
 #include "State.h"
 #include "Files.h"
 #include "Main.h"
-
+#include "Calibration.h"
 
 int main(void)
 {
@@ -97,11 +97,13 @@ int main(void)
 //##########################################################################
 
     InstanceState = PICKING_CONFIG; 
-
-    //const char* saatjaOrVastuvotja = WaitForButtonAndSelectConfig(i2cHandle);
-    //printf("You have chosen: %s\n", saatjaOrVastuvotja);
-    //snprintf(message, sizeof(message), "Picked configuration: %s\n", saatjaOrVastuvotja);
-    //append_to_buffer(&buffer, message); 
+	/*
+	char message[50];
+    const char* saatjaOrVastuvotja = WaitForButtonAndSelectConfig(i2cHandle, "valik1", "valik2");
+    printf("You have chosen: %s\n", saatjaOrVastuvotja);
+    snprintf(message, sizeof(message), "Picked configuration: %s\n", saatjaOrVastuvotja);
+    append_to_buffer(&buffer, message); 
+	*/
 	const char* saatjaOrVastuvotja = "vastuvotja";
 
 //##########################################################################
@@ -192,12 +194,14 @@ int main(void)
     }
     else if(!strcmp(saatjaOrVastuvotja, (const char*)"vastuvotja"))
     {
+		
+    	
         Saatja_Vastuvotja_State = VASTUVOTJA;
 
         TimeStampToBuffer(&buffer, "Sensor program start: "); 
 
         printf("Starting: %s\n", "VASTUVOTJA"); 
-        
+		        
         double *delaysCalculated = RegisterBlinks(i2cHandle, &buffer); 
 
         printf("Calculating average delay\n");
@@ -219,7 +223,7 @@ int main(void)
         pthread_mutex_lock(&buttonLock);
         buttonPressed = 0;
         pthread_mutex_unlock(&buttonLock);
-
+		
         //oledWriteText(i2cHandle, 0, 2, "PRESS BTN TO END");
 		/*
         while (1)
@@ -251,17 +255,32 @@ int main(void)
 
 	ShowReady(0);
 
+	printf("Program finished before thread\n");
+
+	programRunning = 0;
+	printf("programmRunning: %d\n", programRunning);
+	fflush(stdout); 
+
+	pthread_cancel(buttonThread);
     pthread_join(buttonThread, NULL);
+
+	printf("Program finished before BUTTONLOCK DESTROCTION\n");
+
     pthread_mutex_destroy(&buttonLock);
 
 	//pthread_join(oledThread, NULL);	
     //pthread_mutex_destroy(&oledLock);
-	
 
+	printf("Program finished before i2c\n");
+
+    oledClear(i2cHandle);
+		
     if (i2cHandle){
         close(i2cHandle);
     }
 
+	printf("Program finished\n");
+	
     /*if (system ("sudo shutdown -h now") != 0) {
         perror("Failed to shutdown");
         oledClear(i2cHandle);

@@ -164,7 +164,6 @@ void* readButtonState_thread(void* arg) {
     ClosePort(openedPort);	
     return NULL;
 }
-
 void ClosePort(struct port* openedPort)
 {
     //gpiod_line_set_value(openedPort->line, 0);
@@ -353,11 +352,10 @@ const char* checkButtonState(struct port* port1, struct port* port2) {
 const char* waitForButtonState(int port1, int port2, const char* state1Value, const char* state2Value) 
 {
     
-    struct port* openedPort1 = openPort(port1, "Port 1", true);  // Pin for saatja
-    struct port* openedPort2 = openPort(port2, "Port 2", true);  // Pin for vastuvotja
+    //struct port* openedPort1 = openPort(port1, "Port 1", true);  // Pin for saatja
     
-    int state1 = gpiod_line_get_value(openedPort1->line);
-    int state2 = gpiod_line_get_value(openedPort2->line);
+    int state1 = 1;
+    int state2 = 0;
 
     if (state1 < 0 || state2 < 0) {
         perror("Failed to read GPIO line value");
@@ -377,9 +375,6 @@ const char* waitForButtonState(int port1, int port2, const char* state1Value, co
     //printf("Button state: %s\n", state);
 	preciseSleep(0.5);
     
-    ClosePort(openedPort1);
-    ClosePort(openedPort2);
-
     return "undefined";  // Undefined state
 }
 
