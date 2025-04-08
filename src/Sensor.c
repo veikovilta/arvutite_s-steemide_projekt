@@ -143,11 +143,24 @@ double CalculateDelaySingle(struct timespec timestamp, struct timespec senderSta
         (numOfBlink * BLINK_INTERVAL) + TimeFix;
     
     double result = -1.0;  
-    
+
+	int i = 0; 
+
+	while(sensorSawTimeSec < blinkStartTimeSec)
+	{
+
+		blinkStartTimeSec -= BLINK_INTERVAL;
+		
+		if(i > BLINK_INTERVAL)
+		{
+			return result;
+		}
+	} 
+	
     if (sensorSawTimeSec > blinkStartTimeSec)
     {
         result = sensorSawTimeSec - blinkStartTimeSec;
-
+	
 		result = result * 1000 - (numOfBlink * 0.0002) ;
     }
 

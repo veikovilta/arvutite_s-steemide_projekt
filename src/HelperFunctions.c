@@ -352,16 +352,22 @@ const char* checkButtonState(struct port* port1, struct port* port2) {
 const char* waitForButtonState(int port1, int port2, const char* state1Value, const char* state2Value) 
 {
     
-    //struct port* openedPort1 = openPort(port1, "Port 1", true);  // Pin for saatja
-    
-    int state1 = 1;
-    int state2 = 0;
+    struct port* openedPort1 = openPort(port1, "Port 1", true);  // Pin for saatja
+	struct port* openedPort2 = openPort(port2, "Port 2", true);  // Pin for saatja
+	    
+	int state1 = gpiod_line_get_value(openedPort1->line);
+	int state2 = gpiod_line_get_value(openedPort2->line);
 
+	ClosePort(openedPort1);
+	ClosePort(openedPort2);
+	
     if (state1 < 0 || state2 < 0) {
         perror("Failed to read GPIO line value");
         return "error";
     }
 
+	printf("state1: %d, state2: %d\n", state1, state2);
+	
     // Determine the button state
     if (state1 == 1 && state2 == 0)
     {
@@ -374,7 +380,7 @@ const char* waitForButtonState(int port1, int port2, const char* state1Value, co
     else
     //printf("Button state: %s\n", state);
 	preciseSleep(0.5);
-    
+	    
     return "undefined";  // Undefined state
 }
 
@@ -466,7 +472,7 @@ const char* WaitForButtonAndSelectConfig(int i2cHandle, const char* state1Value,
 {
     char* value;
     char message[100] = "";
-    char lastPicked[30];
+    char lastPicked[100] = "";
     // Lock and reset the buttonPressed flag
     pthread_mutex_lock(&buttonLock);
     buttonPressed = 0;
@@ -477,13 +483,16 @@ const char* WaitForButtonAndSelectConfig(int i2cHandle, const char* state1Value,
         // Wait for button state and get the selected config
         value = waitForButtonState(24, 25, state1Value, state2Value);
         sprintf(message, "Selected:%s\n", value);
-
+		printf("terew4");
+		
         if (lastPicked[0] == '\0') {
             oledWriteText(i2cHandle, 0, 0, "PRESS BUTTON TO PICK");
             oledWriteText(i2cHandle, 1, 2, message);
             printf("%s\n", message); 
         }
         
+        
+        printf("terew3");
         if(strcmp(value, lastPicked) != 0){
 		    oledClear(i2cHandle);
             oledWriteText(i2cHandle, 0, 0, "PRESS BUTTON TO PICK");
@@ -491,8 +500,9 @@ const char* WaitForButtonAndSelectConfig(int i2cHandle, const char* state1Value,
             printf("%s\n", message); 
         }
         
+        printf("terew1");
 	    strcpy(lastPicked, value);
-	
+		printf("terew2");
         preciseSleep(0.5);
 
         // Check if button was pressed, exit loop if true
@@ -506,6 +516,7 @@ const char* WaitForButtonAndSelectConfig(int i2cHandle, const char* state1Value,
         pthread_mutex_unlock(&buttonLock); 
     }
 
+	printf("terew5");
     return value;
 }
 

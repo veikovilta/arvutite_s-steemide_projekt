@@ -97,14 +97,12 @@ int main(void)
 //##########################################################################
 
     InstanceState = PICKING_CONFIG; 
-	/*
 	char message[50];
-    const char* saatjaOrVastuvotja = WaitForButtonAndSelectConfig(i2cHandle, "valik1", "valik2");
+    const char* saatjaOrVastuvotja = WaitForButtonAndSelectConfig(i2cHandle, "saatja", "vastuvotja");
     printf("You have chosen: %s\n", saatjaOrVastuvotja);
     snprintf(message, sizeof(message), "Picked configuration: %s\n", saatjaOrVastuvotja);
     append_to_buffer(&buffer, message); 
-	*/
-	const char* saatjaOrVastuvotja = "vastuvotja";
+	//const char* saatjaOrVastuvotja = "vastuvotja";
 
 //##########################################################################
 
@@ -198,6 +196,10 @@ int main(void)
     	
         Saatja_Vastuvotja_State = VASTUVOTJA;
 
+		CalibrateVastuvotja(i2cHandle);
+		
+		
+		
         TimeStampToBuffer(&buffer, "Sensor program start: "); 
 
         printf("Starting: %s\n", "VASTUVOTJA"); 
