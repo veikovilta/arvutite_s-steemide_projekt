@@ -18,9 +18,8 @@ struct args_port
 };
 
 static volatile int buttonPressed = 0;
-static pthread_mutex_t buttonLock;
 static volatile int programRunning = 1;  // Flag to control the thread loop
-
+static pthread_mutex_t buttonLock;
 static pthread_t buttonThread;
 
 /*

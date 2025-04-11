@@ -36,17 +36,17 @@ int main(void)
 	
 	//peab testima kas see ethernet test tootab v pean panema testima kuni on ja mingi ajaga valja lic
 	if (!check_ethernet_connected()) {
-        printf("Ethernet not connected! Exiting...\n");
-        oledClear(i2cHandle);
-        oledWriteText(i2cHandle, 0, 0, "No Ethernet!");
-        preciseSleep(3);
-        return 1;
-    }
+	    printf("Ethernet not connected! Closing\n");
+	    oledClear(i2cHandle);
+	    oledWriteText(i2cHandle, 0, 0, "No Ethernet!");
+	    preciseSleep(3);
+	    return 1;
+	}
 
     printf("Ethernet connected\n");
     oledClear(i2cHandle);
     oledWriteText(i2cHandle, 0, 0, "Ethernet connected!");
-    preciseSleep(1);
+    preciseSleep(2);
 
     signal(SIGINT, signalHandler);
 
@@ -114,7 +114,8 @@ int main(void)
 //##########################################################################
 
     InstanceState = PICKING_CONFIG; 
-	char message[50];
+    
+    char message[50];
     const char* saatjaOrVastuvotja = WaitForButtonAndSelectConfig(i2cHandle, "saatja", "vastuvotja");
     printf("You have chosen: %s\n", saatjaOrVastuvotja);
     snprintf(message, sizeof(message), "Picked configuration: %s\n", saatjaOrVastuvotja);
@@ -124,10 +125,10 @@ int main(void)
 //##########################################################################
 
 
-	oledClear(i2cHandle);
+    oledClear(i2cHandle);
     InstanceState = SYNCHRONIZING; 
-	printf("Syncronizing\n");
-	TimeStampToBuffer(&buffer, "Start syncronizing: ");
+    printf("Syncronizing\n");
+    TimeStampToBuffer(&buffer, "Start syncronizing: ");
     
     int synced = ChronySync(i2cHandle, &buffer);
 
@@ -145,7 +146,9 @@ int main(void)
     {
         Saatja_Vastuvotja_State = SAATJA; 
 
-        printf("Starting: %s\n", "SAATJA"); 
+        printf("Starting: SAATJA\n");
+	oledClear(i2cHandle);
+	oledWriteText(i2cHandle, 0, 0, "Starting Saatja");
         
         TimeStampToBuffer(&buffer, "Blinking program start: "); 
 
@@ -213,13 +216,15 @@ int main(void)
     	
         Saatja_Vastuvotja_State = VASTUVOTJA;
 
-		CalibrateVastuvotja(i2cHandle);
+	CalibrateVastuvotja(i2cHandle);
 		
 		
 		
         TimeStampToBuffer(&buffer, "Sensor program start: "); 
 
-        printf("Starting: %s\n", "VASTUVOTJA"); 
+        printf("Starting: VASTUVOTJA\n"); 
+	oledClear(i2cHandle);
+	oledWriteText(i2cHandle, 0, 0, "Starting VASTUVOTJA");
 		        
         double *delaysCalculated = RegisterBlinks(i2cHandle, &buffer); 
 

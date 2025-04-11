@@ -150,7 +150,6 @@ void* readButtonState_thread(void* arg) {
         if (debounceCount >= debounceThreshold && buttonState != lastReportedState) {
 
             if (buttonState == 1) {
-                printf("Button is pressed!\n");
                 pthread_mutex_lock(&buttonLock);
 			    buttonPressed = 1;
                 pthread_mutex_unlock(&buttonLock);
@@ -386,8 +385,6 @@ const char* waitForButtonState(int port1, int port2, const char* state1Value, co
         perror("Failed to read GPIO line value");
         return "error";
     }
-
-	printf("state1: %d, state2: %d\n", state1, state2);
 	
     // Determine the button state
     if (state1 == 1 && state2 == 0)
@@ -567,32 +564,3 @@ int check_ethernet_connected(void) {
     freeifaddrs(ifaddr);
     return found;
 }
-
-/*
-int CreateButtonThread(int i2cHandle, pthread_t* buttonThread) {
-
-    struct args_port args;
-    args.portPin = GPIO_BUTTON;
-    args.debugName = "InputButton";
-	args.inputOutput = true;
-
-    if(pthread_create(buttonThread, NULL, readButtonState_thread, (void*)&args) < 0)
-    {
-        perror("Failed to create thread");
-        oledClear(i2cHandle);
-        oledWriteText(i2cHandle, 0, 0, "ERROR Failed to create thread");
-        oledWriteText(i2cHandle, 2, 0, "Shutting Down");
-        
-        if (system("sudo shutdown -h now") != 0) {
-            perror("Failed to shutdown");
-            oledClear(i2cHandle);
-            oledWriteText(i2cHandle, 2, 0, "Shutting Down failed");
-        }
-        return 1;
-    }
-
-    printf("Button thread created\n");
-
-    return 0; 
-}
-*/
