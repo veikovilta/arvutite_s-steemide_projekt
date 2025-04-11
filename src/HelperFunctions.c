@@ -116,7 +116,10 @@ void* oled_thread(void* arg)
 void* readButtonState_thread(void* arg) {
     struct args_port* args = (struct args_port*) arg;
     struct port *openedPort = openPort(args->portPin, args->debugName, args->inputOutput);
-
+    
+    double buttonPressedTime = 0.0;
+    const double shutdownHoldTime = 3.0;
+    
     //pthread_cleanup_push((void(*)(void*))ClosePort, openedPort);
 	
     if (openedPort == NULL) {
@@ -156,6 +159,24 @@ void* readButtonState_thread(void* arg) {
             lastReportedState = buttonState;
             debounceCount = 0;
         }
+        
+        // === 3-second hold causes shutdown ===
+        if (buttonState == 1) 
+        {
+            buttonPressedTime += 0.01; // 10 ms per loop
+            if (buttonPressedTime >= shutdownHoldTime) 
+            {
+                printf("Shutting down...\n");
+                //system("shutdown -h now");
+                programRunning = 0;
+                break;
+            }
+        }
+        else 
+        {
+            buttonPressedTime = 0.0; // Reset if button released
+        }    
+
 
         prevButtonState = buttonState;
         preciseSleep(0.01); // 10 ms delay
@@ -417,21 +438,23 @@ int ChronySync(int i2cHandle, char** buffer)
         
         minutes+=5;
 
-        // kui ei ole syncis 10 mintaga siis error
+        // kui ei ole syncis 10 mintaga siis error ja restart
         if (minutes == 120)
         {
             oledClear(i2cHandle);
             // Display a message on the OLED
             oledWriteText(i2cHandle, 0, 0, "NOT SYNCED");
             oledWriteText(i2cHandle, 2, 0, "ERROR BAD RECEPTION");
-            oledWriteText(i2cHandle, 4, 0, "Shutting Down");
-        
-            if (system ("sudo shutdown -h now") != 0) {
-                perror("Failed to shutdown");
-                oledClear(i2cHandle);
-                oledWriteText(i2cHandle, 2, 0, "Shutting Down failed");
-                // Handle the error or exit
-            }
+            oledWriteText(i2cHandle, 4, 0, "restarting");
+            
+            char *args[] = { "./projekt", NULL };
+            execvp(args[0], args);
+
+            perror("execvp failed");
+            
+            oledClear(i2cHandle);
+            oledWriteText(i2cHandle, 2, 0, "restarting failed");
+ 
             return 1;
         }
         
@@ -483,7 +506,6 @@ const char* WaitForButtonAndSelectConfig(int i2cHandle, const char* state1Value,
         // Wait for button state and get the selected config
         value = waitForButtonState(24, 25, state1Value, state2Value);
         sprintf(message, "Selected:%s\n", value);
-		printf("terew4");
 		
         if (lastPicked[0] == '\0') {
             oledWriteText(i2cHandle, 0, 0, "PRESS BUTTON TO PICK");
@@ -491,18 +513,14 @@ const char* WaitForButtonAndSelectConfig(int i2cHandle, const char* state1Value,
             printf("%s\n", message); 
         }
         
-        
-        printf("terew3");
         if(strcmp(value, lastPicked) != 0){
 		    oledClear(i2cHandle);
             oledWriteText(i2cHandle, 0, 0, "PRESS BUTTON TO PICK");
             oledWriteText(i2cHandle, 1, 2, message);
             printf("%s\n", message); 
         }
-        
-        printf("terew1");
+
 	    strcpy(lastPicked, value);
-		printf("terew2");
         preciseSleep(0.5);
 
         // Check if button was pressed, exit loop if true
@@ -516,8 +534,38 @@ const char* WaitForButtonAndSelectConfig(int i2cHandle, const char* state1Value,
         pthread_mutex_unlock(&buttonLock); 
     }
 
-	printf("terew5");
     return value;
+}
+
+int check_ethernet_connected(void) {
+    struct ifaddrs *ifaddr, *ifa;
+    int found = 0;
+
+    if (getifaddrs(&ifaddr) == -1) {
+        perror("getifaddrs");
+        return 0;
+    }
+
+    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+        if (ifa->ifa_addr == NULL) continue;
+
+        if ((ifa->ifa_flags & IFF_UP) && (ifa->ifa_flags & IFF_RUNNING) && 
+            (ifa->ifa_addr->sa_family == AF_INET) &&
+            (strcmp(ifa->ifa_name, "eth0") == 0)) {
+
+            char ip[INET_ADDRSTRLEN];
+            struct sockaddr_in *sa = (struct sockaddr_in *)ifa->ifa_addr;
+            inet_ntop(AF_INET, &(sa->sin_addr), ip, INET_ADDRSTRLEN);
+
+            if (strcmp(ip, "0.0.0.0") != 0) {  // Make sure it's not a dummy IP
+                found = 1;
+                break;
+            }
+        }
+    }
+
+    freeifaddrs(ifaddr);
+    return found;
 }
 
 /*

@@ -20,6 +20,10 @@
 #include "State.h"
 #include "Files.h"
 #include "State.h"
+#include <ifaddrs.h>  
+#include <netinet/in.h>   
+#include <arpa/inet.h>    
+#include <net/if.h> 
 
 #define GPIO_BUTTON 27
 

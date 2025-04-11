@@ -1,5 +1,5 @@
 //ask if user wants to calibrate 
-//needs to be implemented on both veriosn 
+//needs to be implemented on both versions 
 //saatja blinks 5 times 
 //vastuvõtja displays number of blinks it got 
 //if blink count doesnt equal to 5 program will reccomend user which way to turn the 

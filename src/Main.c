@@ -24,8 +24,31 @@ int main(void)
 {
 //##########################################################################
 	ShowReady(0);
+	
+	int i2cHandle = i2cInit("/dev/i2c-1", OLED_I2C_ADDR);
+	if (i2cHandle < 0) return -1;
+	
+	oledInit(i2cHandle);
+	oledClear(i2cHandle);
+	oledWriteText(i2cHandle, 0, 0, "Program started");
+	printf("Program started\n");
+	preciseSleep(1);
+	
+	//peab testima kas see ethernet test tootab v pean panema testima kuni on ja mingi ajaga valja lic
+	if (!check_ethernet_connected()) {
+        printf("Ethernet not connected! Exiting...\n");
+        oledClear(i2cHandle);
+        oledWriteText(i2cHandle, 0, 0, "No Ethernet!");
+        preciseSleep(3);
+        return 1;
+    }
 
-	signal(SIGINT, signalHandler);
+    printf("Ethernet connected\n");
+    oledClear(i2cHandle);
+    oledWriteText(i2cHandle, 0, 0, "Ethernet connected!");
+    preciseSleep(1);
+
+    signal(SIGINT, signalHandler);
 
     InstanceState = STARTING;
     char *buffer = NULL;
@@ -42,8 +65,7 @@ int main(void)
     
     //char numberStr[20] = "";
 
-	int i2cHandle = i2cInit("/dev/i2c-1", OLED_I2C_ADDR);
-	if (i2cHandle < 0) return -1;	
+		
 	
 	/*
     pthread_mutex_init(&oledLock, NULL);
@@ -61,11 +83,6 @@ int main(void)
 
 	*/
 	
-    oledInit(i2cHandle);
-    oledClear(i2cHandle);
-    oledWriteText(i2cHandle, 0, 0, "Program started");
-    printf("Program started\n");
-    preciseSleep(1);
 
 //##########################################################################
     
