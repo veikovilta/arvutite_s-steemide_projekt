@@ -59,6 +59,8 @@ int main(void)
 
     if (system("sudo systemctl start chrony") != 0) {
         perror("Failed to start chrony service");
+	oledClear(i2cHandle);
+	oledWriteText(i2cHandle, 0, 0, "Chrony failed!");
     }
 
 //##########################################################################
@@ -91,20 +93,24 @@ int main(void)
     struct args_port args;
     args.portPin = GPIO_BUTTON;
     args.debugName = "InputButton";
-  	args.inputOutput = true;
+    args.inputOutput = true;
   
     if(pthread_create(&buttonThread, NULL, readButtonState_thread, (void*)&args) < 0)
     {
         perror("Failed to create thread");
         oledClear(i2cHandle);
         oledWriteText(i2cHandle, 0, 0, "ERROR Failed to create thread");
-        oledWriteText(i2cHandle, 2, 0, "Shutting Down");
+        oledWriteText(i2cHandle, 2, 0, "Restarting program");
+	
+        printf("Error with thread, restarting program\n");
         
-        if (system("sudo shutdown -h now") != 0) {
-            perror("Failed to shutdown");
-            oledClear(i2cHandle);
-            oledWriteText(i2cHandle, 2, 0, "Shutting Down failed");
-        }
+        char *args[] = { "./projekt", NULL };
+        execvp(args[0], args);
+
+        perror("execvp failed");
+            
+        oledClear(i2cHandle);
+        
         return 1;
     }
 

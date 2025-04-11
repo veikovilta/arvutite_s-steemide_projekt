@@ -218,10 +218,19 @@ void AddSystemOffsetToBuffer(char** buffer, int i2cHandle)
 	if (fp == NULL) 
 	{
 	    oledClear(i2cHandle); // Clear the display
-	    oledWriteText(i2cHandle, 0, 0, "Failed to run chronyc command.");
-	    oledWriteText(i2cHandle, 0, 2, "Shutting Down");
-	    printf("Error with chronyc, shutting down\n");
-	    //system ("sudo shutdown -h now");
+	    oledWriteText(i2cHandle, 0, 0, "Failed chronyc");
+	    oledWriteText(i2cHandle, 0, 2, "Restarting program");
+	    printf("Error with chronyc, restarting program\n");
+            
+        char *args[] = { "./projekt", NULL };
+        execvp(args[0], args);
+
+        perror("execvp failed");
+            
+        oledClear(i2cHandle);
+        oledWriteText(i2cHandle, 2, 0, "restarting failed");
+        
+        
 	   	return;
 	}
 
@@ -266,10 +275,18 @@ int CheckSync(int i2cHandle, char** buffer)
     if (fp == NULL) 
     {
         oledClear(i2cHandle); // Clear the display
-        oledWriteText(i2cHandle, 0, 0, "Failed to run chronyc command.");
-        oledWriteText(i2cHandle, 0, 2, "Shutting Down");
-        printf("Error with chronyc, shutting down\n");
-        //system ("sudo shutdown -h now");
+        oledWriteText(i2cHandle, 0, 0, "Failed chronyc");
+        oledWriteText(i2cHandle, 0, 2, "Restarting program");
+        printf("Error with chronyc, restarting program\n");
+        
+        char *args[] = { "./projekt", NULL };
+        execvp(args[0], args);
+
+        perror("execvp failed");
+            
+        oledClear(i2cHandle);
+        oledWriteText(i2cHandle, 2, 0, "restarting failed");
+        
         return 1;
     }
 
