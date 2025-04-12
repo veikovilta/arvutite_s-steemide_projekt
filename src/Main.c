@@ -33,13 +33,14 @@ int main(void)
 	oledWriteText(i2cHandle, 0, 0, "Program started");
 	printf("Program started\n");
 	preciseSleep(1);
-	
-	//peab testima kas see ethernet test tootab v pean panema testima kuni on ja mingi ajaga valja lic
+
 	if (!check_ethernet_connected()) {
 	    printf("Ethernet not connected! Closing\n");
 	    oledClear(i2cHandle);
 	    oledWriteText(i2cHandle, 0, 0, "No Ethernet!");
 	    preciseSleep(3);
+
+	    system("shutdown -h now");
 	    return 1;
 	}
 
@@ -61,6 +62,13 @@ int main(void)
         perror("Failed to start chrony service");
 	oledClear(i2cHandle);
 	oledWriteText(i2cHandle, 0, 0, "Chrony failed!");
+	
+	printf("Error with chrony, restarting program\n");
+        
+        char *args[] = { "./projekt", NULL };
+        execvp(args[0], args);
+
+        perror("execvp failed");
     }
 
 //##########################################################################
@@ -108,8 +116,7 @@ int main(void)
         execvp(args[0], args);
 
         perror("execvp failed");
-            
-        oledClear(i2cHandle);
+
         
         return 1;
     }
@@ -200,20 +207,6 @@ int main(void)
 
         oledWriteText(i2cHandle, 0, 2, "PRESS BTN TO END");
 
-
-		/*
-        while (1)
-        {
-            if (IsButtonPressed())
-            {
-                printf("ENDED pressed\n");
-
-				break;
-            }
-
-            preciseSleep(0.1);
-        }
-        */
         
     }
     else if(!strcmp(saatjaOrVastuvotja, (const char*)"vastuvotja"))
@@ -253,16 +246,51 @@ int main(void)
         pthread_mutex_lock(&buttonLock);
         buttonPressed = 0;
         pthread_mutex_unlock(&buttonLock);
-		
-        //oledWriteText(i2cHandle, 0, 2, "PRESS BTN TO END");
+    
+	AddSystemOffsetToBuffer(&buffer, i2cHandle);	
+	TimeStampToBuffer(&buffer, "End: "); 
+    
+	write_log_to_file(buffer);
+	free(buffer);
+	
+	// !!! siin anna valik kas programm uuesti v kas shutdown, 
+	// !!! switchbuttoniga valik ja siis kinnitus tavalise nupuga
+	// !!! parast selle valmis tegemist shutdown lopust valja commentida
+	
+	//oledWriteText(i2cHandle, 0, 0, "SHUTDOWN OR RESTART");
+        //oledWriteText(i2cHandle, 0, 2, "PRESS BTN TO Confirm");
 		/*
         while (1)
         {
+	
+	oledWriteText(i2cHandle, 0, 4, "CHOSEN STATE :");
+	
+	//check state print
+	char state[20] = CheckState();//idk mis funktsioon v kuidas sa checkisid 
+	oledWriteText(i2cHandle, 0, 4, state);
+	
             if (IsButtonPressed())
             {
-                break;
+                state = CheckState();
+		if(state == SHUTDOWN)
+		{
+		    break;
+		}
+		else if (state == RESTART)// voib ka lic else-iks panna
+		{
+		    oledWriteText(i2cHandle, 2, 0, "Restarting program");
+	
+		    printf("restarting program\n");
+        
+		    args = { "./projekt", NULL };
+		    execvp(args[0], args);
+
+		    perror("execvp failed");
+            
+		}
             }
 
+	
             preciseSleep(0.1);
         }
         */
@@ -277,15 +305,10 @@ int main(void)
     oledWriteText(i2cHandle, 0, 2, "Shutting Down");
     printf("Program finished\n"); 
 
-	AddSystemOffsetToBuffer(&buffer, i2cHandle);	
-    TimeStampToBuffer(&buffer, "End: "); 
-    
-    write_log_to_file(buffer);
-    free(buffer);
+
 
 	ShowReady(0);
 
-	printf("Program finished before thread\n");
 
 	programRunning = 0;
 	printf("programmRunning: %d\n", programRunning);
@@ -294,14 +317,12 @@ int main(void)
 	pthread_cancel(buttonThread);
     pthread_join(buttonThread, NULL);
 
-	printf("Program finished before BUTTONLOCK DESTROCTION\n");
 
     pthread_mutex_destroy(&buttonLock);
 
 	//pthread_join(oledThread, NULL);	
     //pthread_mutex_destroy(&oledLock);
 
-	printf("Program finished before i2c\n");
 
     oledClear(i2cHandle);
 		
@@ -309,7 +330,6 @@ int main(void)
         close(i2cHandle);
     }
 
-	printf("Program finished\n");
 	
     /*if (system ("sudo shutdown -h now") != 0) {
         perror("Failed to shutdown");
