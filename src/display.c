@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <pthread.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <unistd.h>
@@ -7,8 +8,26 @@
 #include <sys/ioctl.h>
 #include <gpiod.h>
 #include <stdint.h>
+#include <string.h>
 #include "display.h"
+#include "HelperFunctions.h"
+/*
+void* oled_thread(void* arg)
+{
 
+	while (programRunning)
+	{	
+		pthread_mutex_lock(&global_mutex);
+		printf("tere\n");
+		if(strcmp("", oledBuffer) != 0)
+		{
+			printf("%s\n", oledBuffer);
+		}
+		pthread_mutex_unlock(&global_mutex);
+		preciseSleep(1);
+	}
+}
+*/
 // Function to initialize I2C communication
 int i2cInit(const char *device, int addr) {
     int file = open(device, O_RDWR);

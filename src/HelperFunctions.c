@@ -87,32 +87,14 @@ void signalHandler(int signum) {
 	pthread_mutex_destroy(&buttonLock);
 	ShowReady(0);
 	
-	//pthread_join(oledThread, NULL);	
+	pthread_join(oledThread, NULL);	
     //pthread_mutex_destroy(&oledLock);
 	
     // Additional cleanup if needed
     printf("Program terminated cleanly.\n");
     exit(0);
 }
-/*
-void* oled_thread(void* arg)
-{
-	int i2cHandle = i2cInit("/dev/i2c-1", OLED_I2C_ADDR);
-	if (i2cHandle < 0) return -1;
 
-	while (programRunning)
-	{
-		if(bufferHasBeenUpdated)
-		{		
-			pthread_mutex_lock(&oledLock);
-			oledWriteText(i2cHandle, 0, 0, oledBuffer);
-
-		    pthread_mutex_unlock(&oledLock);
-		}
-		preciseSleep(0.5);    	
-	}
-}
-*/
 void* readButtonState_thread(void* arg) {
     struct args_port* args = (struct args_port*) arg;
     struct port *openedPort = openPort(args->portPin, args->debugName, args->inputOutput);
@@ -366,26 +348,6 @@ int IsButtonPressed(void)
 	return 0;
 }
 
-const char* checkButtonState(struct port* port1, struct port* port2) {
-    
-    int state1 = gpiod_line_get_value(port1->line);
-    int state2 = gpiod_line_get_value(port2->line);
-
-    if (state1 < 0 || state2 < 0) {
-        perror("Failed to read GPIO line value");
-        return "error";
-    }
-
-    // Determine the button state
-    if (state1 == 1 && state2 == 0) {
-        return "saatja";  // Button pressed for "saatja"
-    } else if (state1 == 0 && state2 == 1) {
-        return "vastuvotja";  // Button pressed for "vastuvotja"
-    } else {
-        return "undefined";  // Undefined state
-    }
-}
-
 const char* waitForButtonState(int port1, int port2, const char* state1Value, const char* state2Value) 
 {
     
@@ -505,20 +467,28 @@ void WaitForNextMinuteBlinker(struct timespec firstblink) {
     }
 }
 
-const char* WaitForButtonAndSelectConfig(int i2cHandle, const char* state1Value, const char* state2Value) 
+const char* WaitForButtonAndSelectConfig(int i2cHandle, const char* state1Value,
+											 const char* state2Value, const char* state3Value) 
 {
-    char* value;
+    char* value = "\0";
     char message[100] = "";
     char lastPicked[100] = "";
     // Lock and reset the buttonPressed flag
+
+    pthread_mutex_unlock(&buttonLock);
     pthread_mutex_lock(&buttonLock);
     buttonPressed = 0;
     pthread_mutex_unlock(&buttonLock);
-	
+
     while (1) {
 
         // Wait for button state and get the selected config
         value = waitForButtonState(24, 25, state1Value, state2Value);
+
+        if(strcmp(value, "undefined") == 0){
+			value = state3Value; 
+		}
+
         sprintf(message, "Selected:%s\n", value);
 		
         if (lastPicked[0] == '\0') {
@@ -527,7 +497,7 @@ const char* WaitForButtonAndSelectConfig(int i2cHandle, const char* state1Value,
             printf("%s\n", message); 
         }
         
-        if(strcmp(value, lastPicked) != 0){
+        if(strcmp(value, lastPicked) != 0 && strcmp("", lastPicked) != 0){
 		    oledClear(i2cHandle);
             oledWriteText(i2cHandle, 0, 0, "PRESS BUTTON TO PICK");
             oledWriteText(i2cHandle, 1, 2, message);

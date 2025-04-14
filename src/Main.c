@@ -24,15 +24,68 @@ int main(void)
 {
 //##########################################################################
 	ShowReady(0);
-	
+
+
+	char *new_argv[] = { "sudo", "./projekt", NULL };
+
 	int i2cHandle = i2cInit("/dev/i2c-1", OLED_I2C_ADDR);
 	if (i2cHandle < 0) return -1;
 	
 	oledInit(i2cHandle);
 	oledClear(i2cHandle);
-	oledWriteText(i2cHandle, 0, 0, "Program started");
+	//oledWriteText(i2cHandle, 0, 0, "Program started");
 	printf("Program started\n");
 	preciseSleep(1);
+
+    pthread_mutex_init(&buttonLock, NULL);
+
+    struct args_port args_btn;
+    args_btn.portPin = GPIO_BUTTON;
+    args_btn.debugName = "InputButton";
+    args_btn.inputOutput = true;
+
+	signal(SIGINT, signalHandler);
+
+	InstanceState = STARTING;
+	char *buffer = NULL;
+	
+	TimeStampToBuffer(&buffer, "Start: ");
+  
+    if(pthread_create(&buttonThread, NULL, readButtonState_thread, (void*)&args_btn) < 0)
+    {
+        perror("Failed to create thread");
+        oledClear(i2cHandle);
+        oledWriteText(i2cHandle, 0, 0, "ERROR Failed to create thread");
+        oledWriteText(i2cHandle, 2, 0, "Restarting program");
+	
+        printf("Error with thread, restarting program\n");
+        
+        execvp("sudo", new_argv);
+
+        perror("execvp failed");
+
+        
+        return 1;
+    }
+
+    printf("Button thread created\n");
+	append_to_buffer(&buffer, "Button thread created\n");
+
+	oledClear(i2cHandle);
+	
+	oledWriteText(i2cHandle, 0, 2, "PRESS BTN TO START");
+
+	while (1)
+	{
+	    if (IsButtonPressed())
+	    {
+	        printf("START pressed\n");
+
+				break;
+	    }
+
+	    preciseSleep(0.1);
+	}	
 
 	if (!check_ethernet_connected()) {
 	    printf("Ethernet not connected! Closing\n");
@@ -49,14 +102,9 @@ int main(void)
     oledWriteText(i2cHandle, 0, 0, "Ethernet connected!");
     preciseSleep(2);
 
-    signal(SIGINT, signalHandler);
-
-    InstanceState = STARTING;
-    char *buffer = NULL;
-	
-    TimeStampToBuffer(&buffer, "Start: ");
 	
 //##########################################################################
+
 
     if (system("sudo systemctl start chrony") != 0) {
         perror("Failed to start chrony service");
@@ -65,8 +113,7 @@ int main(void)
 	
 	printf("Error with chrony, restarting program\n");
         
-        char *args[] = { "./projekt", NULL };
-        execvp(args[0], args);
+        execvp("sudo", new_argv);
 
         perror("execvp failed");
     }
@@ -75,12 +122,9 @@ int main(void)
     
     //char numberStr[20] = "";
 
-		
-	
+    //pthread_mutex_init(&oledLock, NULL);
+
 	/*
-    pthread_mutex_init(&oledLock, NULL);
-
-
 	if(pthread_create(&oledThread, NULL, oled_thread, NULL) < 0)
 	{
 	    perror("Failed to create thread");
@@ -90,53 +134,38 @@ int main(void)
 	    }
 	    return 1;
 	}
-
 	*/
+	//pthread_mutex_lock(&global_mutex);
+	//sprintf(oledBuffer, "Average:111111\n");
+	//pthread_mutex_unlock(&global_mutex);	
 	
 
 //##########################################################################
     
-    pthread_mutex_init(&buttonLock, NULL);
-
-    struct args_port args;
-    args.portPin = GPIO_BUTTON;
-    args.debugName = "InputButton";
-    args.inputOutput = true;
-  
-    if(pthread_create(&buttonThread, NULL, readButtonState_thread, (void*)&args) < 0)
-    {
-        perror("Failed to create thread");
-        oledClear(i2cHandle);
-        oledWriteText(i2cHandle, 0, 0, "ERROR Failed to create thread");
-        oledWriteText(i2cHandle, 2, 0, "Restarting program");
-	
-        printf("Error with thread, restarting program\n");
-        
-        char *args[] = { "./projekt", NULL };
-        execvp(args[0], args);
-
-        perror("execvp failed");
-
-        
-        return 1;
-    }
-
-    printf("Button thread created\n");
-	append_to_buffer(&buffer, "Button thread created\n");
 
 //##########################################################################
 
     InstanceState = PICKING_CONFIG; 
     
     char message[50];
-    const char* saatjaOrVastuvotja = WaitForButtonAndSelectConfig(i2cHandle, "saatja", "vastuvotja");
+    const char* saatjaOrVastuvotja = WaitForButtonAndSelectConfig(i2cHandle, "saatja", "vastuvotja", "Switch state");
     printf("You have chosen: %s\n", saatjaOrVastuvotja);
     snprintf(message, sizeof(message), "Picked configuration: %s\n", saatjaOrVastuvotja);
     append_to_buffer(&buffer, message); 
 	//const char* saatjaOrVastuvotja = "vastuvotja";
 
 //##########################################################################
+	int runAgain = 1; 
 
+	
+	do { ////  FOR RUNNING AGAIN  //////
+
+	if (runAgain)
+	{
+		TimeStampToBuffer(&buffer, "Starting log in run again mode: \n");		
+		append_to_buffer(&buffer, message);		
+	}
+///////////////////////////////////////////////////////////////////////////
 
     oledClear(i2cHandle);
     InstanceState = SYNCHRONIZING; 
@@ -207,97 +236,125 @@ int main(void)
 
         oledWriteText(i2cHandle, 0, 2, "PRESS BTN TO END");
 
-        
+		
+        while (1)
+        {
+            if (IsButtonPressed())
+            {
+                printf("ENDED pressed\n");
+
+				break;
+            }
+
+            preciseSleep(0.1);
+        }
+         
     }
     else if(!strcmp(saatjaOrVastuvotja, (const char*)"vastuvotja"))
     {
-		
-    	
-        Saatja_Vastuvotja_State = VASTUVOTJA;
 
-	CalibrateVastuvotja(i2cHandle);
-		
-		
-		
-        TimeStampToBuffer(&buffer, "Sensor program start: "); 
+		 	
+		     Saatja_Vastuvotja_State = VASTUVOTJA;
 
-        printf("Starting: VASTUVOTJA\n"); 
-	oledClear(i2cHandle);
-	oledWriteText(i2cHandle, 0, 0, "Starting VASTUVOTJA");
-		        
-        double *delaysCalculated = RegisterBlinks(i2cHandle, &buffer); 
+		CalibrateVastuvotja(i2cHandle);
 
-        printf("Calculating average delay\n");
-        int numOfValidCalculations = 0;
-        double averageDelay = calculateAverage(delaysCalculated, &numOfValidCalculations); 
-        char averageDelayStr[50]; 
-    
-        sprintf(averageDelayStr, "Average: %.7f\n", averageDelay); // Format average delay
-        printf("%s\n",averageDelayStr);
-        append_to_buffer(&buffer, averageDelayStr); 
 
-        free(delaysCalculated);
 
-        oledClear(i2cHandle);
-        oledWriteText(i2cHandle, 0, 4, averageDelayStr);
+		     TimeStampToBuffer(&buffer, "Sensor program start: "); 
 
-        TimeStampToBuffer(&buffer, "Sensor finished: "); 
-	
-        pthread_mutex_lock(&buttonLock);
-        buttonPressed = 0;
-        pthread_mutex_unlock(&buttonLock);
-    
-	AddSystemOffsetToBuffer(&buffer, i2cHandle);	
-	TimeStampToBuffer(&buffer, "End: "); 
-    
-	write_log_to_file(buffer);
-	free(buffer);
-	
-	// !!! siin anna valik kas programm uuesti v kas shutdown, 
-	// !!! switchbuttoniga valik ja siis kinnitus tavalise nupuga
-	// !!! parast selle valmis tegemist shutdown lopust valja commentida
-	
-	//oledWriteText(i2cHandle, 0, 0, "SHUTDOWN OR RESTART");
-        //oledWriteText(i2cHandle, 0, 2, "PRESS BTN TO Confirm");
-		/*
+		     printf("Starting: VASTUVOTJA\n"); 
+		oledClear(i2cHandle);
+		oledWriteText(i2cHandle, 0, 0, "Starting VASTUVOTJA");
+		       
+		     double *delaysCalculated = RegisterBlinks(i2cHandle, &buffer); 
+
+		     printf("Calculating average delay\n");
+		     int numOfValidCalculations = 0;
+		     double averageDelay = calculateAverage(delaysCalculated, &numOfValidCalculations); 
+		     char averageDelayStr[50]; 
+		 
+		     sprintf(averageDelayStr, "Average: %.7f\n", averageDelay); // Format average delay
+		     printf("%s\n",averageDelayStr);
+		     append_to_buffer(&buffer, averageDelayStr); 
+
+		     free(delaysCalculated);
+
+		     oledClear(i2cHandle);
+		     oledWriteText(i2cHandle, 0, 4, averageDelayStr);
+
+		     TimeStampToBuffer(&buffer, "Sensor finished: "); 
+
+		     pthread_mutex_lock(&buttonLock);
+		     buttonPressed = 0;
+		     pthread_mutex_unlock(&buttonLock);
+		 
+		AddSystemOffsetToBuffer(&buffer, i2cHandle);	
+		TimeStampToBuffer(&buffer, "End: "); 
+
+        oledWriteText(i2cHandle, 0, 2, "PRESS BTN TO END");
+
         while (1)
         {
-	
-	oledWriteText(i2cHandle, 0, 4, "CHOSEN STATE :");
-	
-	//check state print
-	char state[20] = CheckState();//idk mis funktsioon v kuidas sa checkisid 
-	oledWriteText(i2cHandle, 0, 4, state);
-	
             if (IsButtonPressed())
             {
-                state = CheckState();
-		if(state == SHUTDOWN)
-		{
-		    break;
-		}
-		else if (state == RESTART)// voib ka lic else-iks panna
-		{
-		    oledWriteText(i2cHandle, 2, 0, "Restarting program");
-	
-		    printf("restarting program\n");
-        
-		    args = { "./projekt", NULL };
-		    execvp(args[0], args);
+                printf("ENDED pressed\n");
 
-		    perror("execvp failed");
-            
-		}
+				break;
             }
 
-	
             preciseSleep(0.1);
         }
-        */
-	
+        
     }
+//##########################################################################
 
+	write_log_to_file(buffer);
 
+	oledClear(i2cHandle);	
+
+	printf("HELLO2");
+	
+	const char* endState = WaitForButtonAndSelectConfig(i2cHandle, "shutdown", "restart all", "run again");
+	
+	
+	printf("HELLO3"); 
+		
+		
+	if(strcmp(endState, "shutdown") == 0)
+	{
+		runAgain = 0;
+		free(buffer);
+		break;
+	}
+	else if (strcmp(endState, "restart all") == 0)// voib ka lic else-iks panna
+	{	
+        oledClear(i2cHandle);
+	
+		oledWriteText(i2cHandle, 2, 0, "Restarting program");
+		free(buffer);
+		printf("restarting program\n");
+	    
+		execvp("sudo", new_argv);
+		perror("execvp failed");
+	    runAgain = 0; 
+	}
+	else if(strcmp(endState, "run again") == 0)
+	{
+		runAgain = 1;
+		
+		if (buffer != NULL) {
+		      free(buffer);    // Free the allocated memory.
+		      buffer = NULL;   // Set the pointer to NULL to avoid a dangling pointer.
+		}  
+	}
+	else
+	{
+		free(buffer);
+		runAgain = 0;	
+	}
+	printf("hello"); 
+//////////////////////////////////////////////////////////
+	} while (runAgain == 1); 	
 //##########################################################################
 
     //oledClear(i2cHandle);
@@ -316,6 +373,10 @@ int main(void)
 
 	pthread_cancel(buttonThread);
     pthread_join(buttonThread, NULL);
+	
+
+	pthread_cancel(oledThread);
+    pthread_join(oledThread, NULL);
 
 
     pthread_mutex_destroy(&buttonLock);
@@ -331,7 +392,7 @@ int main(void)
     }
 
 	
-    /*if (system ("sudo shutdown -h now") != 0) {
+	/*    if (system ("sudo shutdown -h now") != 0) {
         perror("Failed to shutdown");
         oledClear(i2cHandle);
         oledWriteText(i2cHandle, 2, 0, "Shutting Down failed");

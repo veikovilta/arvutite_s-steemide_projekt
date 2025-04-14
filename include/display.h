@@ -2,6 +2,7 @@
 #define DISPLAY_H
 
 #include <stdio.h>
+#include <pthread.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <unistd.h>
@@ -28,6 +29,7 @@
 // Basic font (5x7)
 extern const unsigned char font5x7[][5];
 
+static pthread_t oledThread;
 
 // Function prototypes
 int i2cInit(const char *device, int addr);
@@ -38,7 +40,7 @@ void oledSetCursor(int i2cHandle, int x, int y);
 void oledClear(int i2cHandle);
 void oledWriteChar(int i2cHandle, char ch);
 void oledWriteText(int i2cHandle, int x, int y, const char *text);
-
+void* oled_thread(void* arg); 
 
 
 #endif

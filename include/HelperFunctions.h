@@ -1,8 +1,11 @@
 #ifndef HELPERFUNCTIONS_H
 #define HELPERFUNCTIONS_H
 
+#include <pthread.h>
+
 #define GPIO_READY_LED 23
 #define GPIO_CHIP "/dev/gpiochip0"
+
 
 struct port 
 {
@@ -22,6 +25,8 @@ static volatile int programRunning = 1;  // Flag to control the thread loop
 static pthread_mutex_t buttonLock;
 static pthread_t buttonThread;
 
+//pthread_mutex_t global_mutex = PTHREAD_MUTEX_INITIALIZER;
+//static volatile char oledBuffer[100] = "";
 /*
 static pthread_t oledThread;
 
@@ -46,7 +51,8 @@ void WaitForNextMinuteBlinker(struct timespec firstblink);
 void ShowReady(int outputValue);
 int IsButtonPressed(void);
 const char* waitForButtonState(int port1, int port2, const char* state1Value, const char* state2Value); 
-const char* WaitForButtonAndSelectConfig(int i2cHandle, const char* state1Value, const char* state2Value);
+const char* WaitForButtonAndSelectConfig(int i2cHandle, const char* state1Value, const char* state2Value, const char* state3Value);
 const char* checkButtonState(struct port* port1, struct port* port2);
 int check_ethernet_connected(void);
+
 #endif
