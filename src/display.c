@@ -11,23 +11,35 @@
 #include <string.h>
 #include "display.h"
 #include "HelperFunctions.h"
-/*
+
+pthread_mutex_t global_mutex = PTHREAD_MUTEX_INITIALIZER;
+char oledBuffer[100] = "";
+
+void SetOledMessage(const char* message)
+{
+    pthread_mutex_lock(&global_mutex);
+    snprintf(oledBuffer, 100, "%s", message);
+    pthread_mutex_unlock(&global_mutex);
+}
+
 void* oled_thread(void* arg)
 {
 
 	while (programRunning)
 	{	
 		pthread_mutex_lock(&global_mutex);
-		printf("tere\n");
+		//sprintf(oledBuffer, "tere123"); 
+		//printf(":%s\n", oledBuffer);
 		if(strcmp("", oledBuffer) != 0)
 		{
 			printf("%s\n", oledBuffer);
+			oledBuffer[0] = '\0'; 
 		}
 		pthread_mutex_unlock(&global_mutex);
-		preciseSleep(1);
+		preciseSleep(0.1);
 	}
 }
-*/
+
 // Function to initialize I2C communication
 int i2cInit(const char *device, int addr) {
     int file = open(device, O_RDWR);

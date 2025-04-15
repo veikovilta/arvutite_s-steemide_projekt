@@ -30,7 +30,8 @@
 extern const unsigned char font5x7[][5];
 
 static pthread_t oledThread;
-
+extern pthread_mutex_t global_mutex;
+extern char oledBuffer[100];	
 // Function prototypes
 int i2cInit(const char *device, int addr);
 void oledWriteCommand(int i2cHandle, uint8_t command);
@@ -41,6 +42,6 @@ void oledClear(int i2cHandle);
 void oledWriteChar(int i2cHandle, char ch);
 void oledWriteText(int i2cHandle, int x, int y, const char *text);
 void* oled_thread(void* arg); 
-
+void SetOledMessage(const char* message);
 
 #endif

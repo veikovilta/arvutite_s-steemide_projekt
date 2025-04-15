@@ -93,14 +93,17 @@ int main(void)
 	    oledWriteText(i2cHandle, 0, 0, "No Ethernet!");
 	    preciseSleep(3);
 
-	    system("shutdown -h now");
-	    return 1;
+	    //system("shutdown -h now");
+	    //return 1;
 	}
+	else{
 
-    printf("Ethernet connected\n");
-    oledClear(i2cHandle);
-    oledWriteText(i2cHandle, 0, 0, "Ethernet connected!");
-    preciseSleep(2);
+	    printf("Ethernet connected\n");
+	    oledClear(i2cHandle);
+	    oledWriteText(i2cHandle, 0, 0, "Ethernet connected!");
+	    preciseSleep(2);
+			
+	}
 
 	
 //##########################################################################
@@ -124,7 +127,7 @@ int main(void)
 
     //pthread_mutex_init(&oledLock, NULL);
 
-	/*
+	
 	if(pthread_create(&oledThread, NULL, oled_thread, NULL) < 0)
 	{
 	    perror("Failed to create thread");
@@ -134,12 +137,9 @@ int main(void)
 	    }
 	    return 1;
 	}
-	*/
-	//pthread_mutex_lock(&global_mutex);
-	//sprintf(oledBuffer, "Average:111111\n");
-	//pthread_mutex_unlock(&global_mutex);	
 	
-
+	SetOledMessage("Hello OLED!");	
+	SetOledMessage("midagi"); 
 //##########################################################################
     
 

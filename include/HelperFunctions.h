@@ -25,7 +25,7 @@ static volatile int programRunning = 1;  // Flag to control the thread loop
 static pthread_mutex_t buttonLock;
 static pthread_t buttonThread;
 
-//pthread_mutex_t global_mutex = PTHREAD_MUTEX_INITIALIZER;
+//static pthread_mutex_t global_mutex = PTHREAD_MUTEX_INITIALIZER;
 //static volatile char oledBuffer[100] = "";
 /*
 static pthread_t oledThread;
