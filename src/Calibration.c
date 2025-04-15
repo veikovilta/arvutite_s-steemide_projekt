@@ -51,7 +51,7 @@ void CalibrateSaatja(int i2cHandle)
 {
     while(1)
     {
-        const char* choice = WaitForButtonAndSelectConfig(i2cHandle, (const char*)"Calibrate", (const char*)"Contioue", (const char*)" ");   
+        const char* choice = WaitForButtonAndSelectConfig((const char*)"Calibrate", (const char*)"Contioue", (const char*)" ");   
     
         if(!strcmp(choice, (const char*)"Calibrate"))
         {
@@ -71,7 +71,7 @@ void CalibrateVastuvotja(int i2cHandle)
 {
     while(1)
     {
-        const char* choice = WaitForButtonAndSelectConfig(i2cHandle, (const char*)"Calibrate", (const char*)"Contioue", (const char*)" ");   
+        const char* choice = WaitForButtonAndSelectConfig((const char*)"Calibrate", (const char*)"Contioue", (const char*)" ");   
     
         if(!strcmp(choice, (const char*)"Calibrate"))
         {

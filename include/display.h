@@ -26,12 +26,25 @@
 #define OLED_WIDTH  128
 #define OLED_HEIGHT 64
 
+#include <stdbool.h>
+
+#define OLED_BUFFER_SIZE 100
 // Basic font (5x7)
 extern const unsigned char font5x7[][5];
 
 static pthread_t oledThread;
 extern pthread_mutex_t global_mutex;
-extern char oledBuffer[100];	
+
+struct oled {
+    char oledBuffer[OLED_BUFFER_SIZE];
+    int x;
+    int y; 
+    bool clean;
+};
+
+extern struct oled oled;
+
+
 // Function prototypes
 int i2cInit(const char *device, int addr);
 void oledWriteCommand(int i2cHandle, uint8_t command);
@@ -42,6 +55,6 @@ void oledClear(int i2cHandle);
 void oledWriteChar(int i2cHandle, char ch);
 void oledWriteText(int i2cHandle, int x, int y, const char *text);
 void* oled_thread(void* arg); 
-void SetOledMessage(const char* message);
+void SetOledMessage(const char* message, int x, int y, bool clean);
 
 #endif

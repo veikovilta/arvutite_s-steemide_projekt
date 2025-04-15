@@ -9,31 +9,49 @@
 #include <gpiod.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdbool.h>
 #include "display.h"
 #include "HelperFunctions.h"
 
 pthread_mutex_t global_mutex = PTHREAD_MUTEX_INITIALIZER;
-char oledBuffer[100] = "";
+struct oled oled = {
+    .oledBuffer = "",
+    .x = 0,
+    .y = 0,
+    .clean = false
+};
 
-void SetOledMessage(const char* message)
+void SetOledMessage(const char* message, int x, int y, bool clean)
 {
     pthread_mutex_lock(&global_mutex);
-    snprintf(oledBuffer, 100, "%s", message);
+    snprintf(oled.oledBuffer, OLED_BUFFER_SIZE, "%s", message);
+    oled.x = x;
+    oled.y = y;
+    oled.clean = clean; 
     pthread_mutex_unlock(&global_mutex);
 }
 
 void* oled_thread(void* arg)
 {
+    int i2cHandle = i2cInit("/dev/i2c-1", OLED_I2C_ADDR);
+	if (i2cHandle < 0) return -1;
+	
+	oledInit(i2cHandle);
 
 	while (programRunning)
 	{	
 		pthread_mutex_lock(&global_mutex);
 		//sprintf(oledBuffer, "tere123"); 
 		//printf(":%s\n", oledBuffer);
-		if(strcmp("", oledBuffer) != 0)
+		if(strcmp("", oled.oledBuffer) != 0)
 		{
-			printf("%s\n", oledBuffer);
-			oledBuffer[0] = '\0'; 
+			if(oled.clean)
+            {
+                oledClear(i2cHandle);
+            }
+            oledWriteText(i2cHandle, oled.x, oled.y, oled.oledBuffer); 
+            printf("%s\n", oled.oledBuffer);
+			oled.oledBuffer[0] = '\0'; 
 		}
 		pthread_mutex_unlock(&global_mutex);
 		preciseSleep(0.1);

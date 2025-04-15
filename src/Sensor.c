@@ -9,9 +9,9 @@
 #include "Files.h"
 #include "LedBlink.h"
 
-int CountBlinks(int i2cHandle)
+int CountBlinks()
 {
-    (void)i2cHandle;
+    //(void)i2cHandle;
     int blinkCount = 0; 
     struct port *openedPort = openPort(GPIO_PIN_LED, "GPIO PIN 22", true);
     
@@ -36,7 +36,7 @@ int CountBlinks(int i2cHandle)
 	return blinkCount; 
 }
 
-double* RegisterBlinks(int i2cHandle, char** buffer)
+double* RegisterBlinks(char** buffer)
 {
     char numberStr[20] = "";
     struct args_port* args = (struct args_port*) args;
@@ -48,8 +48,9 @@ double* RegisterBlinks(int i2cHandle, char** buffer)
         preciseSleep(0.1); 
     }
     printf("Got first blink, sleeping until next full minute\n");
-    oledClear(i2cHandle);
-    oledWriteText(i2cHandle, 0, 0, "Got first blink");
+    //oledClear(i2cHandle);
+    //oledWriteText(i2cHandle, 0, 0, "Got first blink");
+    SetOledMessage("Got first blink", 0, 0, true);
     TimeStampToBuffer(buffer, "Got first blink: ");
 	
     struct timespec currentTime;
@@ -112,7 +113,8 @@ double* RegisterBlinks(int i2cHandle, char** buffer)
 
         TimeStampToBufferWithTime(buffer, "Seen at: ", timestamps[i]);
         sprintf(numberStr, "Delay: %.5f ms\n", singleDelay);
-        oledWriteText(i2cHandle, 0, 2, numberStr);
+        //oledWriteText(i2cHandle, 0, 2, numberStr);
+        SetOledMessage(numberStr, 0, 2, true);
         append_to_buffer(buffer, numberStr); 
 
         printf("Got %d\n", i);

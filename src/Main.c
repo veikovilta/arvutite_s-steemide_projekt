@@ -28,11 +28,11 @@ int main(void)
 
 	char *new_argv[] = { "sudo", "./projekt", NULL };
 
-	int i2cHandle = i2cInit("/dev/i2c-1", OLED_I2C_ADDR);
-	if (i2cHandle < 0) return -1;
+	//int i2cHandle = i2cInit("/dev/i2c-1", OLED_I2C_ADDR);
+	//if (i2cHandle < 0) return -1;
 	
-	oledInit(i2cHandle);
-	oledClear(i2cHandle);
+	//oledInit(i2cHandle);
+	//oledClear(i2cHandle);
 	//oledWriteText(i2cHandle, 0, 0, "Program started");
 	printf("Program started\n");
 	preciseSleep(1);
@@ -50,13 +50,27 @@ int main(void)
 	char *buffer = NULL;
 	
 	TimeStampToBuffer(&buffer, "Start: ");
+
+	if(pthread_create(&oledThread, NULL, oled_thread, NULL) < 0)
+	{
+	    perror("Failed to create thread");
+	    
+	    if (system("sudo shutdown -h now") != 0) {
+	        perror("Failed to shutdown");
+	    }
+	    return 1;
+	}
+	
+
   
     if(pthread_create(&buttonThread, NULL, readButtonState_thread, (void*)&args_btn) < 0)
     {
         perror("Failed to create thread");
-        oledClear(i2cHandle);
-        oledWriteText(i2cHandle, 0, 0, "ERROR Failed to create thread");
-        oledWriteText(i2cHandle, 2, 0, "Restarting program");
+        //oledClear(i2cHandle);
+        SetOledMessage("ERROR Failed to create thread", 0, 0, true);
+        SetOledMessage("Restarting program", 2, 0, false);
+        //oledWriteText(i2cHandle, 0, 0, "ERROR Failed to create thread");
+        //oledWriteText(i2cHandle, 2, 0, "Restarting program");
 	
         printf("Error with thread, restarting program\n");
         
@@ -71,10 +85,11 @@ int main(void)
     printf("Button thread created\n");
 	append_to_buffer(&buffer, "Button thread created\n");
 
-	oledClear(i2cHandle);
+	//oledClear(i2cHandle);
 	
-	oledWriteText(i2cHandle, 0, 2, "PRESS BTN TO START");
-
+	//oledWriteText(i2cHandle, 0, 2, "PRESS BTN TO START");
+    SetOledMessage("PRESS BTN TO START", 0, 2, true);
+        
 	while (1)
 	{
 	    if (IsButtonPressed())
@@ -87,10 +102,15 @@ int main(void)
 	    preciseSleep(0.1);
 	}	
 
+	SetOledMessage("Starting", 0, 2, true);
+
+	/*
 	if (!check_ethernet_connected()) {
 	    printf("Ethernet not connected! Closing\n");
-	    oledClear(i2cHandle);
-	    oledWriteText(i2cHandle, 0, 0, "No Ethernet!");
+	    //oledClear(i2cHandle);
+        SetOledMessage("No Ethernet!", 0, 0, true);
+        
+        //oledWriteText(i2cHandle, 0, 0, "No Ethernet!");
 	    preciseSleep(3);
 
 	    //system("shutdown -h now");
@@ -99,20 +119,22 @@ int main(void)
 	else{
 
 	    printf("Ethernet connected\n");
-	    oledClear(i2cHandle);
-	    oledWriteText(i2cHandle, 0, 0, "Ethernet connected!");
-	    preciseSleep(2);
+	    //oledClear(i2cHandle);
+	    //oledWriteText(i2cHandle, 0, 0, "Ethernet connected!");
+	    SetOledMessage("Ethernet connected!", 0, 0, true);
+        
+        preciseSleep(2);
 			
 	}
-
+	*/
 	
 //##########################################################################
 
 
     if (system("sudo systemctl start chrony") != 0) {
         perror("Failed to start chrony service");
-	oledClear(i2cHandle);
-	oledWriteText(i2cHandle, 0, 0, "Chrony failed!");
+	//oledClear(i2cHandle);
+	//oledWriteText(i2cHandle, 0, 0, "Chrony failed!");
 	
 	printf("Error with chrony, restarting program\n");
         
@@ -120,7 +142,7 @@ int main(void)
 
         perror("execvp failed");
     }
-
+	printf("Hello\n");
 //##########################################################################
     
     //char numberStr[20] = "";
@@ -128,18 +150,7 @@ int main(void)
     //pthread_mutex_init(&oledLock, NULL);
 
 	
-	if(pthread_create(&oledThread, NULL, oled_thread, NULL) < 0)
-	{
-	    perror("Failed to create thread");
-	    
-	    if (system("sudo shutdown -h now") != 0) {
-	        perror("Failed to shutdown");
-	    }
-	    return 1;
-	}
-	
-	SetOledMessage("Hello OLED!");	
-	SetOledMessage("midagi"); 
+
 //##########################################################################
     
 
@@ -148,14 +159,15 @@ int main(void)
     InstanceState = PICKING_CONFIG; 
     
     char message[50];
-    const char* saatjaOrVastuvotja = WaitForButtonAndSelectConfig(i2cHandle, "saatja", "vastuvotja", "Switch state");
+    const char* saatjaOrVastuvotja = WaitForButtonAndSelectConfig("saatja", "vastuvotja", "Switch state");
     printf("You have chosen: %s\n", saatjaOrVastuvotja);
     snprintf(message, sizeof(message), "Picked configuration: %s\n", saatjaOrVastuvotja);
     append_to_buffer(&buffer, message); 
 	//const char* saatjaOrVastuvotja = "vastuvotja";
+	printf("Hello1\n");
 
 //##########################################################################
-	int runAgain = 1; 
+	int runAgain = 0; 
 
 	
 	do { ////  FOR RUNNING AGAIN  //////
@@ -167,12 +179,12 @@ int main(void)
 	}
 ///////////////////////////////////////////////////////////////////////////
 
-    oledClear(i2cHandle);
+    //oledClear(i2cHandle);
     InstanceState = SYNCHRONIZING; 
     printf("Syncronizing\n");
     TimeStampToBuffer(&buffer, "Start syncronizing: ");
     
-    int synced = ChronySync(i2cHandle, &buffer);
+    int synced = ChronySync(&buffer);
 
     if(!synced){
         printf("Syncronized\n");
@@ -189,8 +201,9 @@ int main(void)
         Saatja_Vastuvotja_State = SAATJA; 
 
         printf("Starting: SAATJA\n");
-	oledClear(i2cHandle);
-	oledWriteText(i2cHandle, 0, 0, "Starting Saatja");
+	//oledClear(i2cHandle);
+	//oledWriteText(i2cHandle, 0, 0, "Starting Saatja");
+    SetOledMessage("Starting Saatja", 0, 0, true); 
         
         TimeStampToBuffer(&buffer, "Blinking program start: "); 
 
@@ -202,9 +215,12 @@ int main(void)
 
         struct timespec firstblink = ledBlinkOnce(&ledBlinkPort, &buffer);
 
-        oledClear(i2cHandle);
-        oledWriteText(i2cHandle, 0, 0, "Waiting");
-        oledWriteText(i2cHandle, 0, 2, "Next min blink");
+        //oledClear(i2cHandle);
+        //oledWriteText(i2cHandle, 0, 0, "Waiting");
+        //oledWriteText(i2cHandle, 0, 2, "Next min blink");
+        SetOledMessage("Next min blink", 0, 0, true);
+        preciseSleep(0.5); 
+        SetOledMessage("Waiting", 0, 2, false);
         // Print the time
         printf("LED blink time: %ld seconds and %ld nanoseconds\n", 
             (long)firstblink.tv_sec, (long)firstblink.tv_nsec);
@@ -222,9 +238,9 @@ int main(void)
 
         InstanceState = BLINKING_FINISHED;
 
-        oledClear(i2cHandle);
-        oledWriteText(i2cHandle, 0, 0, "FINISHED");
-        
+        //oledClear(i2cHandle);
+        //oledWriteText(i2cHandle, 0, 0, "FINISHED");
+        SetOledMessage("FINISHED", 0, 0, true);
         preciseSleep(1); 
 
         printf("Blinking finished\n"); 
@@ -234,8 +250,9 @@ int main(void)
         buttonPressed = 0;
         pthread_mutex_unlock(&buttonLock);
 
-        oledWriteText(i2cHandle, 0, 2, "PRESS BTN TO END");
-
+        //oledWriteText(i2cHandle, 0, 2, "PRESS BTN TO END");
+        SetOledMessage("PRESS BTN TO END", 0, 2, false);
+        
 		
         while (1)
         {
@@ -256,17 +273,17 @@ int main(void)
 		 	
 		     Saatja_Vastuvotja_State = VASTUVOTJA;
 
-		CalibrateVastuvotja(i2cHandle);
+		//CalibrateVastuvotja(i2cHandle);
 
 
 
 		     TimeStampToBuffer(&buffer, "Sensor program start: "); 
 
 		     printf("Starting: VASTUVOTJA\n"); 
-		oledClear(i2cHandle);
-		oledWriteText(i2cHandle, 0, 0, "Starting VASTUVOTJA");
-		       
-		     double *delaysCalculated = RegisterBlinks(i2cHandle, &buffer); 
+		//oledClear(i2cHandle);
+		//oledWriteText(i2cHandle, 0, 0, "Starting VASTUVOTJA");
+        SetOledMessage("Starting VASTUVOTJA", 0, 0, true);
+		     double *delaysCalculated = RegisterBlinks(&buffer); 
 
 		     printf("Calculating average delay\n");
 		     int numOfValidCalculations = 0;
@@ -279,20 +296,21 @@ int main(void)
 
 		     free(delaysCalculated);
 
-		     oledClear(i2cHandle);
-		     oledWriteText(i2cHandle, 0, 4, averageDelayStr);
-
+		     //oledClear(i2cHandle);
+		     //oledWriteText(i2cHandle, 0, 4, averageDelayStr);
+             SetOledMessage(averageDelayStr, 0, 4, true);
 		     TimeStampToBuffer(&buffer, "Sensor finished: "); 
 
 		     pthread_mutex_lock(&buttonLock);
 		     buttonPressed = 0;
 		     pthread_mutex_unlock(&buttonLock);
 		 
-		AddSystemOffsetToBuffer(&buffer, i2cHandle);	
+		AddSystemOffsetToBuffer(&buffer);	
 		TimeStampToBuffer(&buffer, "End: "); 
 
-        oledWriteText(i2cHandle, 0, 2, "PRESS BTN TO END");
-
+        //oledWriteText(i2cHandle, 0, 2, "PRESS BTN TO END");
+        SetOledMessage("PRESS BTN TO END", 0, 2, false);
+        
         while (1)
         {
             if (IsButtonPressed())
@@ -309,15 +327,12 @@ int main(void)
 //##########################################################################
 
 	write_log_to_file(buffer);
+	
+	printf("%s\n", buffer); 
+	memset(buffer, 0, sizeof(buffer));
+	//oledClear(i2cHandle);	
 
-	oledClear(i2cHandle);	
-
-	printf("HELLO2");
-	
-	const char* endState = WaitForButtonAndSelectConfig(i2cHandle, "shutdown", "restart all", "run again");
-	
-	
-	printf("HELLO3"); 
+	const char* endState = WaitForButtonAndSelectConfig("shutdown", "restart all", "run again");
 		
 		
 	if(strcmp(endState, "shutdown") == 0)
@@ -328,10 +343,11 @@ int main(void)
 	}
 	else if (strcmp(endState, "restart all") == 0)// voib ka lic else-iks panna
 	{	
-        oledClear(i2cHandle);
+        //oledClear(i2cHandle);
 	
-		oledWriteText(i2cHandle, 2, 0, "Restarting program");
-		free(buffer);
+		//oledWriteText(i2cHandle, 2, 0, "Restarting program");
+        SetOledMessage("Restarting program", 0, 2, true);
+        free(buffer);
 		printf("restarting program\n");
 	    
 		execvp("sudo", new_argv);
@@ -341,11 +357,9 @@ int main(void)
 	else if(strcmp(endState, "run again") == 0)
 	{
 		runAgain = 1;
-		
-		if (buffer != NULL) {
-		      free(buffer);    // Free the allocated memory.
-		      buffer = NULL;   // Set the pointer to NULL to avoid a dangling pointer.
-		}  
+
+		//buffer[0] = '\0';
+		//printf("Buffer: %s\n", buffer); 	
 	}
 	else
 	{
@@ -358,8 +372,10 @@ int main(void)
 //##########################################################################
 
     //oledClear(i2cHandle);
-    oledWriteText(i2cHandle, 0, 0, "Program finished");
-    oledWriteText(i2cHandle, 0, 2, "Shutting Down");
+    //oledWriteText(i2cHandle, 0, 0, "Program finished");
+    SetOledMessage("Program finished", 0, 0, true);
+    //oledWriteText(i2cHandle, 0, 2, "Shutting Down");
+    SetOledMessage("Shutting Down", 0, 0, true);
     printf("Program finished\n"); 
 
 
@@ -385,12 +401,12 @@ int main(void)
     //pthread_mutex_destroy(&oledLock);
 
 
-    oledClear(i2cHandle);
-		
+    //oledClear(i2cHandle);
+	/*	
     if (i2cHandle){
         close(i2cHandle);
     }
-
+    */
 	
 	/*    if (system ("sudo shutdown -h now") != 0) {
         perror("Failed to shutdown");
