@@ -41,7 +41,7 @@ double* RegisterBlinks(char** buffer)
     char numberStr[20] = "";
     struct args_port* args = (struct args_port*) args;
     struct port *openedPort = openPort(GPIO_PIN_LED, "GPIO PIN 22", true);
-
+	double* delaysCalculated = (double*)malloc(BLINK_COUNT * sizeof(double)); 
     // Wait for the first blink
     while (gpiod_line_get_value(openedPort->line) == 0) 
     {
@@ -102,7 +102,7 @@ double* RegisterBlinks(char** buffer)
             preciseSleep(0.3);
         }
 		
-        double singleDelay = CalculateDelaySingle(timestamps[i], senderStartTime, i);
+        delaysCalculated[i] = CalculateDelaySingle(timestamps[i], senderStartTime, i);
 
 		/*
         if (singleDelay == -1.0)
@@ -112,7 +112,7 @@ double* RegisterBlinks(char** buffer)
         */
 
         TimeStampToBufferWithTime(buffer, "Seen at: ", timestamps[i]);
-        sprintf(numberStr, "Delay: %.5f ms\n", singleDelay);
+        sprintf(numberStr, "Delay: %.5f ms\n", delaysCalculated[i]);
         //oledWriteText(i2cHandle, 0, 2, numberStr);
         SetOledMessage(numberStr, 0, 2, true);
         append_to_buffer(buffer, numberStr); 
@@ -121,8 +121,6 @@ double* RegisterBlinks(char** buffer)
     }
 
     printf("Got all data\n");
-
-	double *delaysCalculated = calculateDelays(timestamps, senderStartTime);
 
     gpiod_line_release(openedPort->line);
     gpiod_chip_close(openedPort->chip);
@@ -163,12 +161,18 @@ double CalculateDelaySingle(struct timespec timestamp, struct timespec senderSta
     {
         result = sensorSawTimeSec - blinkStartTimeSec;
 	
-		result = result * 1000 - (numOfBlink * 0.0002) ;
+		result = result * 1000;
     }
 
-    return result; 
+    while (result >= 2000)
+    {
+    	result -= 2000;
+    }
+
+    return result - (numOfBlink * 0.19); 
 }
 
+/*
 //error handling to-do if isnt some readings are wrong 
 double* calculateDelays(const struct timespec *timestamps,
 	const struct timespec senderStartTime) 
@@ -197,50 +201,12 @@ double* calculateDelays(const struct timespec *timestamps,
             ((double)senderStartTime.tv_nsec / 1e9) +
             i * BLINK_INTERVAL + TimeFix;
 		
-        // Check if the time difference is greater than 2 seconds
-        if (fabs(sensorSawTimeSec - blinkStartTimeSec) > BLINK_INTERVAL ) 
-        {
-           if (i + 1 < BLINK_COUNT) { // Ensure there's a next blink to check
-                double nextSensorSawTimeSec = 
-                    (double)timestamps[i + 1].tv_sec + 
-                    ((double)timestamps[i + 1].tv_nsec / 1e9);
-
-                double nextBlinkStartTimeSec = 
-                    (double)senderStartTime.tv_sec + 
-                    ((double)senderStartTime.tv_nsec / 1e9) +
-                    (i + 1) * BLINK_INTERVAL + TimeFix;
-
-                // If the next blink is within the correct range
-                if (fabs(nextSensorSawTimeSec - nextBlinkStartTimeSec) <= BLINK_INTERVAL) 
-                {
-                    continue;  // Skip the current blink
-                }
-                if (fabs(sensorSawTimeSec - nextBlinkStartTimeSec) <= BLINK_INTERVAL) 
-                {
-                    TimeFix += BLINK_INTERVAL;
-                    delaysCalculated[i] = sensorSawTimeSec - BLINK_INTERVAL + blinkStartTimeSec;
-                    continue;
-                }
-                else
-                {
-                    continue;  // Skip the current blink if both are out of sync
-                }
-            }
-            else 
-            {
-                continue;  // No next blink to check, so skip this one
-            }
-        }
-		if (sensorSawTimeSec > blinkStartTimeSec)
-		{
-			delaysCalculated[i] = sensorSawTimeSec - blinkStartTimeSec;
-		}
         
 	}
 
     return delaysCalculated;
 }
-
+*/
 void setArrayToZero(double *array)
 {
     
