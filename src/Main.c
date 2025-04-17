@@ -1,5 +1,3 @@
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -86,8 +84,39 @@ int main(void)
 	append_to_buffer(&buffer, "Button thread created\n");
 
 	//oledClear(i2cHandle);
+
+	const char* startState; 
+	
+	do
+	{
+
+		startState = WaitForButtonAndSelectConfig("SHUTDOWN", " ", "START");			
+			
+		if(strcmp(startState, "SHUTDOWN") == 0)
+		{
+			free(buffer);
+			SetOledMessage("Shutting down...", 0, 0, true);
+			preciseSleep(1); 
+           	programRunning = 0;
+         			
+		    if (system("sudo shutdown -h now") != 0) {
+				
+				perror("Failed to shutdown");
+			}
+			return 1;
+			
+		}
+		else if(strcmp(startState, "START") == 0)
+		{	
+			SetOledMessage("STARTING...", 0, 0, true);
+			preciseSleep(1.5); 
+		}
+
+	
+	}while(strcmp("START", startState) != 0 );
 	
 	//oledWriteText(i2cHandle, 0, 2, "PRESS BTN TO START");
+	/*
     SetOledMessage("PRESS BTN TO START", 0, 2, true);
         
 	while (1)
@@ -101,9 +130,8 @@ int main(void)
 
 	    preciseSleep(0.1);
 	}	
-
-	SetOledMessage("Starting", 0, 2, true);
-
+	*/
+	
 	/*
 	if (!check_ethernet_connected()) {
 	    printf("Ethernet not connected! Closing\n");
@@ -133,16 +161,16 @@ int main(void)
 
     if (system("sudo systemctl start chrony") != 0) {
         perror("Failed to start chrony service");
-	//oledClear(i2cHandle);
-	//oledWriteText(i2cHandle, 0, 0, "Chrony failed!");
+		//oledClear(i2cHandle);
+		//oledWriteText(i2cHandle, 0, 0, "Chrony failed!");
 	
-	printf("Error with chrony, restarting program\n");
+		printf("Error with chrony, restarting program\n");
         
         execvp("sudo", new_argv);
 
         perror("execvp failed");
     }
-	printf("Hello\n");
+
 //##########################################################################
     
     //char numberStr[20] = "";
@@ -164,8 +192,7 @@ int main(void)
     snprintf(message, sizeof(message), "Picked configuration: %s\n", saatjaOrVastuvotja);
     append_to_buffer(&buffer, message); 
 	//const char* saatjaOrVastuvotja = "vastuvotja";
-	printf("Hello1\n");
-
+	
 //##########################################################################
 	int runAgain = 0; 
 
@@ -201,9 +228,9 @@ int main(void)
         Saatja_Vastuvotja_State = SAATJA; 
 
         printf("Starting: SAATJA\n");
-	//oledClear(i2cHandle);
-	//oledWriteText(i2cHandle, 0, 0, "Starting Saatja");
-    SetOledMessage("Starting Saatja", 0, 0, true); 
+		//oledClear(i2cHandle);
+		//oledWriteText(i2cHandle, 0, 0, "Starting Saatja");
+    	SetOledMessage("Starting Saatja", 0, 0, true); 
         
         TimeStampToBuffer(&buffer, "Blinking program start: "); 
 
@@ -279,14 +306,14 @@ int main(void)
 
 		     TimeStampToBuffer(&buffer, "Sensor program start: "); 
 
-		     printf("Starting: VASTUVOTJA\n"); 
 		//oledClear(i2cHandle);
 		//oledWriteText(i2cHandle, 0, 0, "Starting VASTUVOTJA");
-        SetOledMessage("Starting VASTUVOTJA", 0, 0, true);
-		     double *delaysCalculated = RegisterBlinks(&buffer); 
+        	SetOledMessage("Starting VASTUVOTJA", 0, 0, true);
+		     int numOfValidCalculations = 0;  
+		     double *delaysCalculated = RegisterBlinks(&buffer, &numOfValidCalculations); 
 
 		     printf("Calculating average delay\n");
-		     int numOfValidCalculations = 0;
+		     
 		     double averageDelay = calculateAverage(delaysCalculated, &numOfValidCalculations); 
 		     char averageDelayStr[50]; 
 		 
@@ -348,7 +375,6 @@ int main(void)
 		//oledWriteText(i2cHandle, 2, 0, "Restarting program");
         SetOledMessage("Restarting program", 0, 2, true);
         free(buffer);
-		printf("restarting program\n");
 	    
 		execvp("sudo", new_argv);
 		perror("execvp failed");
@@ -366,8 +392,8 @@ int main(void)
 		free(buffer);
 		runAgain = 0;	
 	}
-	printf("hello"); 
-//////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////
 	} while (runAgain == 1); 	
 //##########################################################################
 
@@ -378,10 +404,7 @@ int main(void)
     SetOledMessage("Shutting Down", 0, 0, true);
     printf("Program finished\n"); 
 
-
-
 	ShowReady(0);
-
 
 	programRunning = 0;
 	printf("programmRunning: %d\n", programRunning);
@@ -391,22 +414,14 @@ int main(void)
     pthread_join(buttonThread, NULL);
 	
 
+	SetOledMessage(" ", 0, 0, true); 
+	preciseSleep(0.5); 
 	pthread_cancel(oledThread);
     pthread_join(oledThread, NULL);
 
 
     pthread_mutex_destroy(&buttonLock);
 
-	//pthread_join(oledThread, NULL);	
-    //pthread_mutex_destroy(&oledLock);
-
-
-    //oledClear(i2cHandle);
-	/*	
-    if (i2cHandle){
-        close(i2cHandle);
-    }
-    */
 	
 	/*    if (system ("sudo shutdown -h now") != 0) {
         perror("Failed to shutdown");

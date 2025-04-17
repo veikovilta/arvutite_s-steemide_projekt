@@ -36,7 +36,7 @@ int CountBlinks()
 	return blinkCount; 
 }
 
-double* RegisterBlinks(char** buffer)
+double* RegisterBlinks(char** buffer, int *count)
 {
     char numberStr[20] = "";
     struct args_port* args = (struct args_port*) args;
@@ -84,13 +84,24 @@ double* RegisterBlinks(char** buffer)
     TimeStampToBufferWithTime(buffer, "Sender start time: ", senderStartTime); 
         
     struct timespec timestamps[BLINK_COUNT]; 
-    
+    int i; 
+
+    int breakCounter = 0; 
     // Read the LED blinks and record timestamps
-    for (int i = 0; i < BLINK_COUNT; i++) {
+    for (i = 0; i < BLINK_COUNT; i++) {
         // Wait for the GPIO pin to go HIGH
         while (gpiod_line_get_value(openedPort->line) == 0) 
         {
-            preciseSleep(0.001);  
+            preciseSleep(0.001);
+            breakCounter++; 
+            if(breakCounter > 4000)
+            {
+				breakCounter = -1; 
+				SetOledMessage("Stopped, 4sec", 0, 0, true); 
+				TimeStampToBuffer(buffer, "Sensor stopped due to no blinking after 4sec");				
+				preciseSleep(1);
+            	break;
+            }  
         }
 
         // Get current time with high precision
@@ -101,27 +112,24 @@ double* RegisterBlinks(char** buffer)
         {
             preciseSleep(0.3);
         }
+
+		if(breakCounter == -1)
+		{
+			break; 
+		}
 		
         delaysCalculated[i] = CalculateDelaySingle(timestamps[i], senderStartTime, i);
-
-		/*
-        if (singleDelay == -1.0)
-        {
-            continue;
-        }
-        */
-
+		breakCounter = 0; 
         TimeStampToBufferWithTime(buffer, "Seen at: ", timestamps[i]);
         sprintf(numberStr, "Delay: %.5f ms\n", delaysCalculated[i]);
-        //oledWriteText(i2cHandle, 0, 2, numberStr);
         SetOledMessage(numberStr, 0, 2, true);
         append_to_buffer(buffer, numberStr); 
 
-        printf("Got %d\n", i);
+        printf("Got %d\n", i + 1);
     }
 
     printf("Got all data\n");
-
+	*count = i; 
     gpiod_line_release(openedPort->line);
     gpiod_chip_close(openedPort->chip);
     free(openedPort);
@@ -172,41 +180,6 @@ double CalculateDelaySingle(struct timespec timestamp, struct timespec senderSta
     return result - (numOfBlink * 0.19); 
 }
 
-/*
-//error handling to-do if isnt some readings are wrong 
-double* calculateDelays(const struct timespec *timestamps,
-	const struct timespec senderStartTime) 
-{
-    double TimeFix = 0.0; // kui läheb syncist välja siis kasutan
-    double* delaysCalculated = (double*)malloc(BLINK_COUNT * sizeof(double));
-    
-    // Check if malloc was successful
-    if (delaysCalculated == NULL) {
-        // Handle memory allocation failure
-        fprintf(stderr, "Memory allocation failed for delaysCalculated\n");
-        return NULL;
-    }
-    //double delaysCalculated[BLINK_COUNT];
-	
-	setArrayToZero(delaysCalculated);
-	
-    for (int i = 0; i < BLINK_COUNT; i++) {
-    
-        double sensorSawTimeSec = 
-            (double)timestamps[i].tv_sec + 
-            ((double)timestamps[i].tv_nsec / 1e9);
-
-        double blinkStartTimeSec = 
-            (double)senderStartTime.tv_sec + 
-            ((double)senderStartTime.tv_nsec / 1e9) +
-            i * BLINK_INTERVAL + TimeFix;
-		
-        
-	}
-
-    return delaysCalculated;
-}
-*/
 void setArrayToZero(double *array)
 {
     
@@ -220,12 +193,11 @@ double calculateAverage(double *data, int *count)
 {
     double sum = 0.0;
 
-	for (int i = 0; i < BLINK_COUNT; i++)
+	for (int i = 0; i < *count; i++)
 	{
 		if (data[i] != 0.0)
 		{
 			sum += data[i]; // Add the value to the sum
-			(*count)++; // Increment the count of values
 		}
 	}
 

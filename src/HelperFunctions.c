@@ -130,6 +130,7 @@ void* readButtonState_thread(void* arg) {
     int buttonState = 0;
     int prevButtonState = 0;
 	int lastReportedState = 0;
+	char *new_argv[] = { "sudo", "./projekt", NULL };
 
 	
     while(programRunning) {
@@ -163,8 +164,10 @@ void* readButtonState_thread(void* arg) {
             buttonPressedTime += 0.01; // 10 ms per loop
             if (buttonPressedTime >= shutdownHoldTime) 
             {
-                printf("Shutting down...\n");
-                //system("shutdown -h now");
+                //printf("Restarting...\n");
+				SetOledMessage("Restarting...", 0, 0, true);
+				preciseSleep(1); 
+		        execvp("sudo", new_argv);
                 programRunning = 0;
                 break;
             }
@@ -519,7 +522,8 @@ const char* WaitForButtonAndSelectConfig(const char* state1Value,
         sprintf(message, "Selected:%s\n", value);
 		
         if (lastPicked[0] == '\0') {
-            SetOledMessage("PRESS BUTTON TO PICK", 0, 0, false);
+            SetOledMessage("PRESS BUTTON TO PICK", 0, 0, true);
+            preciseSleep(0.5);
             SetOledMessage(message, 1, 2, false);
             printf("%s\n", message); 
         }
@@ -545,32 +549,3 @@ const char* WaitForButtonAndSelectConfig(const char* state1Value,
 
     return value;
 }
-
-/*
-int CreateButtonThread(int i2cHandle, pthread_t* buttonThread) {
-
-    struct args_port args;
-    args.portPin = GPIO_BUTTON;
-    args.debugName = "InputButton";
-	args.inputOutput = true;
-
-    if(pthread_create(buttonThread, NULL, readButtonState_thread, (void*)&args) < 0)
-    {
-        perror("Failed to create thread");
-        oledClear(i2cHandle);
-        oledWriteText(i2cHandle, 0, 0, "ERROR Failed to create thread");
-        oledWriteText(i2cHandle, 2, 0, "Shutting Down");
-        
-        if (system("sudo shutdown -h now") != 0) {
-            perror("Failed to shutdown");
-            oledClear(i2cHandle);
-            oledWriteText(i2cHandle, 2, 0, "Shutting Down failed");
-        }
-        return 1;
-    }
-
-    printf("Button thread created\n");
-
-    return 0; 
-}
-*/

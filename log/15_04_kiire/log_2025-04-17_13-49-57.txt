@@ -1,0 +1,6 @@
+Start: 2025-04-17 13:49:36.298586019
+Button thread created
+Picked configuration: Switch state
+Start syncronizing: 2025-04-17 13:49:52.640690117
+Offset: 0.0000003
+Syncronized
