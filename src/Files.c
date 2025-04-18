@@ -12,7 +12,13 @@ void append_to_buffer(char **buffer, const char *data) {
 
     int data_length = (int)strlen(data);
 
-    // Initialize the buffer if it's the first call
+    // Reset static variables if the buffer is NULL
+    if (*buffer == NULL) {
+        current_size = 0;
+        buffer_capacity = 0;
+    }
+
+    // Initialize the buffer if it's the first call or after being reset
     if (*buffer == NULL) {
         *buffer = malloc(INITIAL_BUFFER_SIZE);
         if (!*buffer) {
