@@ -42,6 +42,13 @@ double* RegisterBlinks(char** buffer, int *count)
     struct args_port* args = (struct args_port*) args;
     struct port *openedPort = openPort(GPIO_PIN_LED, "GPIO PIN 22", true);
 	double* delaysCalculated = (double*)malloc(BLINK_COUNT * sizeof(double)); 
+    
+    struct timespec timestamps[BLINK_COUNT]; 
+    int i; 
+    
+    int breakCounter = 0;
+    struct timespec senderStartTime; 
+
     // Wait for the first blink
     while (gpiod_line_get_value(openedPort->line) == 0) 
     {
@@ -50,7 +57,7 @@ double* RegisterBlinks(char** buffer, int *count)
     printf("Got first blink, sleeping until next full minute\n");
     //oledClear(i2cHandle);
     //oledWriteText(i2cHandle, 0, 0, "Got first blink");
-    SetOledMessage("Got first blink", 0, 0, true);
+    SetOledMessage("Sleeping ...", 0, 0, true);
     TimeStampToBuffer(buffer, "Got first blink: ");
 	
     struct timespec currentTime;
@@ -78,15 +85,9 @@ double* RegisterBlinks(char** buffer, int *count)
     //oledClear(i2cHandle);
     //oledWriteText(i2cHandle, 0, 0, "Got :");
     
-    struct timespec senderStartTime; 
-    
     clock_gettime(CLOCK_REALTIME, &senderStartTime);
     TimeStampToBufferWithTime(buffer, "Sender start time: ", senderStartTime); 
-        
-    struct timespec timestamps[BLINK_COUNT]; 
-    int i; 
-
-    int breakCounter = 0; 
+    SetOledMessage("Waiting blinks ...", 0, 0, true);
     // Read the LED blinks and record timestamps
     for (i = 0; i < BLINK_COUNT; i++) {
         // Wait for the GPIO pin to go HIGH

@@ -310,6 +310,7 @@ int CheckSync(char** buffer)
     //oledWriteText(i2cHandle, 0, 0, "Syncronized");
     SetOledMessage("Syncronized", 0, 0, true); 
     //oledWriteText(i2cHandle, 0, 2, message);
+    preciseSleep(0.5);
     SetOledMessage(message, 0, 2, false); 
     // Check synchronization status
     // piiriks 0.1 ms
@@ -424,6 +425,7 @@ int ChronySync(char** buffer)
     {
         preciseSleep(5);
    		 
+    
         if (CheckSync(buffer) == 0)
         {
             break;
@@ -437,7 +439,8 @@ int ChronySync(char** buffer)
             
             //oledWriteText(i2cHandle, 0, 0, "Syncronizing");
             SetOledMessage("Syncronizing", 0, 0, true); 
-            SetOledMessage(message, 0, 0, false); 
+            preciseSleep(0.5);
+            SetOledMessage(message, 0, 2, false); 
             //oledWriteText(i2cHandle, 0, 2, message);
         }
         
@@ -454,6 +457,7 @@ int ChronySync(char** buffer)
             SetOledMessage("NOT SYNCED", 0, 0, true); 
             SetOledMessage("ERROR BAD RECEPTION", 0, 2, false);
             SetOledMessage("Shutting Down", 0, 4, false); 
+            /*
             if (system ("sudo shutdown -h now") != 0) {
                 perror("Failed to shutdown");
                 //oledClear(i2cHandle);
@@ -461,6 +465,7 @@ int ChronySync(char** buffer)
                 SetOledMessage("ERROR BAD RECEPTION", 2, 0, true);
                 // Handle the error or exit
             }
+            */
             return 1;
         }
         
