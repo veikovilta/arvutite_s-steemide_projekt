@@ -13,7 +13,6 @@
 #include <string.h>
 #include "Sensor.h"
 #include "LedBlink.h"
-#include "State.h"
 #include "Files.h"
 #include "Main.h"
 #include "Calibration.h"
@@ -21,8 +20,6 @@
 int main(void) {
     //##########################################################################
     ShowReady(0);
-
-    char *new_argv[] = { "sudo", "./projekt", NULL };
 
     printf("Program started\n");
     preciseSleep(1);
@@ -39,7 +36,6 @@ int main(void) {
     // Set up signal handler
     signal(SIGINT, signalHandler);
 
-    InstanceState = STARTING;
     char *buffer = NULL;
 
     // Log the start timestamp
@@ -62,9 +58,17 @@ int main(void) {
         SetOledMessage("Restarting program", 2, 0, false);
 
         printf("Error with thread, restarting program\n");
-        execvp("sudo", new_argv);
+    
+        SetOledMessage(" ", 0, 0, true);
+        preciseSleep(0.5);
+        pthread_cancel(oledThread);
+        pthread_join(oledThread, NULL);
+    
 
-        perror("execvp failed");
+        if (system("sudo systemctl restart mooteseade.service") != 0) {
+            perror("Failed to restart");
+        }
+
         return 1;
     }
 
@@ -82,6 +86,14 @@ int main(void) {
             SetOledMessage("Shutting down...", 0, 0, true);
             preciseSleep(1);
             programRunning = 0;
+            
+            pthread_cancel(buttonThread);
+            pthread_join(buttonThread, NULL);
+        
+            SetOledMessage(" ", 0, 0, true);
+            preciseSleep(0.5);
+            pthread_cancel(oledThread);
+            pthread_join(oledThread, NULL);        
 
             if (system("sudo shutdown -h now") != 0) {
                 perror("Failed to shutdown");
@@ -99,16 +111,15 @@ int main(void) {
     if (system("sudo systemctl start chrony") != 0) {
         perror("Failed to start chrony service");
         printf("Error with chrony, restarting program\n");
-        execvp("sudo", new_argv);
-        perror("execvp failed");
+        if (system("sudo systemctl restart mooteseade.service") != 0) {
+            perror("Failed to restart");
+        }
     }
 
     //##########################################################################
 
-    InstanceState = PICKING_CONFIG;
-
     char message[50];
-    const char *saatjaOrVastuvotja = WaitForButtonAndSelectConfig("saatja", "vastuvotja", "Switch state");
+    const char *saatjaOrVastuvotja = WaitForButtonAndSelectConfig("saatja", "vastuvotja", "None");
     printf("You have chosen: %s\n", saatjaOrVastuvotja);
     snprintf(message, sizeof(message), "Picked configuration: %s\n", saatjaOrVastuvotja);
     append_to_buffer(&buffer, message);
@@ -123,7 +134,6 @@ int main(void) {
         }
 
         // Synchronize using chrony
-        InstanceState = SYNCHRONIZING;
         printf("Synchronizing\n");
         TimeStampToBuffer(&buffer, "Start synchronizing: ");
 
@@ -137,7 +147,6 @@ int main(void) {
         //##########################################################################
 
         if (!strcmp(saatjaOrVastuvotja, "saatja")) {
-            Saatja_Vastuvotja_State = SAATJA;
 
             printf("Starting: SAATJA\n");
             SetOledMessage("Starting Saatja", 0, 0, true);
@@ -159,13 +168,10 @@ int main(void) {
                    (long)firstblink.tv_sec, (long)firstblink.tv_nsec);
             fflush(stdout);
 
-            InstanceState = WAITING_NEXT_MINUTE_LED;
             WaitForNextMinuteBlinker(firstblink);
 
             printf("Start blinking\n");
             ledBlinking20(&ledBlinkPort, &buffer);
-
-            InstanceState = BLINKING_FINISHED;
 
             SetOledMessage("FINISHED", 0, 0, true);
             preciseSleep(1);
@@ -177,7 +183,7 @@ int main(void) {
             buttonPressed = 0;
             pthread_mutex_unlock(&buttonLock);
 
-            SetOledMessage("PRESS BTN TO END", 0, 2, false);
+            SetOledMessage("PRESS BTN TO END", 0, 0, false);
 
             while (1) {
                 if (IsButtonPressed()) {
@@ -187,7 +193,6 @@ int main(void) {
                 preciseSleep(0.1);
             }
         } else if (!strcmp(saatjaOrVastuvotja, "vastuvotja")) {
-            Saatja_Vastuvotja_State = VASTUVOTJA;
 
             TimeStampToBuffer(&buffer, "Sensor program start: ");
             SetOledMessage("Starting VASTUVOTJA", 0, 0, true);
@@ -199,15 +204,16 @@ int main(void) {
             double averageDelay = calculateAverage(delaysCalculated, &numOfValidCalculations);
 
             char averageDelayStr[50];
-            sprintf(averageDelayStr, "Average: %.7f\n", averageDelay);
+            sprintf(averageDelayStr, "Average: %.3f %s\n", averageDelay, "ms");
             printf("%s\n", averageDelayStr);
             append_to_buffer(&buffer, averageDelayStr);
 
             free(delaysCalculated);
 
-            SetOledMessage(averageDelayStr, 0, 4, true);
+            SetOledMessage(averageDelayStr, 0, 2, true);
+            preciseSleep(1);
             TimeStampToBuffer(&buffer, "Sensor finished: ");
-
+        
             pthread_mutex_lock(&buttonLock);
             buttonPressed = 0;
             pthread_mutex_unlock(&buttonLock);
@@ -215,7 +221,7 @@ int main(void) {
             AddSystemOffsetToBuffer(&buffer);
             TimeStampToBuffer(&buffer, "End: ");
 
-            SetOledMessage("PRESS BTN TO END", 0, 2, false);
+            SetOledMessage("PRESS BTN TO END", 0, 0, false);
 
             while (1) {
                 if (IsButtonPressed()) {
@@ -239,9 +245,21 @@ int main(void) {
         } else if (strcmp(endState, "restart all") == 0) {
             SetOledMessage("Restarting program", 0, 2, true);
             free(buffer);
-            execvp("sudo", new_argv);
-            perror("execvp failed");
+
+            pthread_cancel(buttonThread);
+            pthread_join(buttonThread, NULL);
+        
+            SetOledMessage(" ", 0, 0, true);
+            preciseSleep(0.5);
+            pthread_cancel(oledThread);
+            pthread_join(oledThread, NULL);
+        
+
+            if (system("sudo systemctl restart mooteseade.service") != 0) {
+                perror("Failed to restart");
+            }
             runAgain = 0;
+            
         } else if (strcmp(endState, "run again") == 0) {
             runAgain = 1;
 			// Free and reset the buffer in "run again" mode
@@ -259,6 +277,7 @@ int main(void) {
     //##########################################################################
 
     SetOledMessage("Program finished", 0, 0, true);
+    preciseSleep(1);
     SetOledMessage("Shutting Down", 0, 0, true);
     printf("Program finished\n");
 
@@ -277,6 +296,10 @@ int main(void) {
     pthread_join(oledThread, NULL);
 
     pthread_mutex_destroy(&buttonLock);
+
+    if (system("sudo shutdown -h now") != 0) {
+        perror("Failed to shutdown");
+    }
 
     return 0;
 }

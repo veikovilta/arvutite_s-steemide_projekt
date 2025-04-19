@@ -17,9 +17,7 @@
 #include <string.h>
 #include "Sensor.h"
 #include "LedBlink.h"
-#include "State.h"
 #include "Files.h"
-#include "State.h"
 #include <ifaddrs.h>  
 #include <netinet/in.h>   
 #include <arpa/inet.h>    

@@ -10,7 +10,6 @@
 #include <string.h>
 #include "display.h"
 #include "Files.h"
-#include "State.h"
 #include <signal.h>
 #include "Main.h"
 
@@ -92,25 +91,7 @@ void signalHandler(int signum) {
     printf("Program terminated cleanly.\n");
     exit(0);
 }
-/*
-void* oled_thread(void* arg)
-{
-	int i2cHandle = i2cInit("/dev/i2c-1", OLED_I2C_ADDR);
-	if (i2cHandle < 0) return -1;
 
-	while (programRunning)
-	{
-		if(bufferHasBeenUpdated)
-		{		
-			pthread_mutex_lock(&oledLock);
-			oledWriteText(i2cHandle, 0, 0, oledBuffer);
-
-		    pthread_mutex_unlock(&oledLock);
-		}
-		preciseSleep(0.5);    	
-	}
-}
-*/
 void* readButtonState_thread(void* arg) {
     struct args_port* args = (struct args_port*) arg;
     struct port *openedPort = openPort(args->portPin, args->debugName, args->inputOutput);
@@ -167,7 +148,9 @@ void* readButtonState_thread(void* arg) {
                 //printf("Restarting...\n");
 				SetOledMessage("Restarting...", 0, 0, true);
 				preciseSleep(1); 
-		        execvp("sudo", new_argv);
+                if (system("sudo systemctl restart mooteseade.service") != 0) {
+                    perror("Failed to restart");
+                }
                 programRunning = 0;
                 break;
             }
@@ -275,7 +258,9 @@ int CheckSync(char** buffer)
         SetOledMessage("Failed to run chronyc command.", 0, 0, true); 
         SetOledMessage("Shutting Down", 0, 0, false); 
         printf("Error with chronyc, shutting down\n");
-        //system ("sudo shutdown -h now");
+        if (system("sudo systemctl status mooteseade.service") != 0) {
+            perror("Failed to restart");
+        }
         return 1;
     }
 
@@ -308,10 +293,10 @@ int CheckSync(char** buffer)
     // Display a message on the OLED
     
     //oledWriteText(i2cHandle, 0, 0, "Syncronized");
-    SetOledMessage("Syncronized", 0, 0, true); 
+    //SetOledMessage("Syncronized", 0, 0, true); 
     //oledWriteText(i2cHandle, 0, 2, message);
-    preciseSleep(0.5);
-    SetOledMessage(message, 0, 2, false); 
+    //preciseSleep(0.5);
+    //SetOledMessage(message, 0, 2, false); 
     // Check synchronization status
     // piiriks 0.1 ms
     if (systemOffset < 0.0001 && systemOffset > -0.0001) 
@@ -320,60 +305,6 @@ int CheckSync(char** buffer)
     }
 
     return 1;
-}
-
-void printDelaysToFile(const char *filename, double *data, int count, double averageDelay)
-{
-    FILE *file = fopen(filename, "w"); // Open file for writing
-
-    if (file == NULL) {
-        perror("Error opening file"); // Handle file opening error
-        return;
-    }
-
-    // Print each delay value to the file
-    fprintf(file, "Delays:\n");
-    for (int i = 0; i < count; i++) {
-        fprintf(file, "Delay %d: %.2f\n", i + 1, data[i]);
-    }
-
-    // Print the average delay to the file
-    fprintf(file, "\nAverage Delay: %.2f\n", averageDelay); // Print average to file
-
-    fclose(file); // Close the file
-}
-
-int IsButtonPressed(void)
-{
-	pthread_mutex_lock(&buttonLock);
-	if(buttonPressed)
-	{
-		buttonPressed = 0; 
-		return 1;
-	}
-	pthread_mutex_unlock(&buttonLock);
-
-	return 0;
-}
-
-const char* checkButtonState(struct port* port1, struct port* port2) {
-    
-    int state1 = gpiod_line_get_value(port1->line);
-    int state2 = gpiod_line_get_value(port2->line);
-
-    if (state1 < 0 || state2 < 0) {
-        perror("Failed to read GPIO line value");
-        return "error";
-    }
-
-    // Determine the button state
-    if (state1 == 1 && state2 == 0) {
-        return "saatja";  // Button pressed for "saatja"
-    } else if (state1 == 0 && state2 == 1) {
-        return "vastuvotja";  // Button pressed for "vastuvotja"
-    } else {
-        return "undefined";  // Undefined state
-    }
 }
 
 const char* waitForButtonState(int port1, int port2, const char* state1Value, const char* state2Value) 
@@ -553,4 +484,17 @@ const char* WaitForButtonAndSelectConfig(const char* state1Value,
     }
 
     return value;
+}
+
+int IsButtonPressed(void)
+{
+	pthread_mutex_lock(&buttonLock);
+	if(buttonPressed)
+	{
+		buttonPressed = 0; 
+		return 1;
+	}
+	pthread_mutex_unlock(&buttonLock);
+
+	return 0;
 }

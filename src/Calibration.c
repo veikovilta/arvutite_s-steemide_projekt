@@ -41,13 +41,12 @@
 #include <string.h>
 #include "Sensor.h"
 #include "LedBlink.h"
-#include "State.h"
 #include "Files.h"
 #include "Main.h"
 
 ////////////// saatja //////////////////
 
-void CalibrateSaatja(int i2cHandle)
+void CalibrateSaatja()
 {
     while(1)
     {
@@ -67,7 +66,7 @@ void CalibrateSaatja(int i2cHandle)
 ////////////// vastuvotja ///////////////////
 
 
-void CalibrateVastuvotja(int i2cHandle)
+void CalibrateVastuvotja()
 {
     while(1)
     {

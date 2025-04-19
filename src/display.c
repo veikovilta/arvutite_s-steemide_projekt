@@ -51,14 +51,14 @@ void* oled_thread(void* arg)
             {
                 oledClear(i2cHandle);
             }
-			/*
+			
 			if(strcmp(" ", oled.oledBuffer) == 0)
 			{
 				if (i2cHandle){
 					close(i2cHandle);
 				}
 			}
-			*/
+			
             oledWriteText(i2cHandle, oled.x, oled.y, oled.oledBuffer); 
             printf("%s\n", oled.oledBuffer);
 			oled.oledBuffer[0] = '\0'; 
