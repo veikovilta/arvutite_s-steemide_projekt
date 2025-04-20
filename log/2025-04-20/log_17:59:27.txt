@@ -1,0 +1,15 @@
+Starting log in run again mode: 
+2025-04-20 17:57:41.503256689
+Picked configuration: saatja
+Start synchronizing: 2025-04-20 17:57:41.503291818
+Offset: 0.0002984
+Offset: 0.0000516
+Synchronized
+Blinking program start: 2025-04-20 17:57:52.446174650
+First sync blink: 2025-04-20 17:57:52.446372648
+Blink: 2025-04-20 17:59:00.000308349
+Blink: 2025-04-20 17:59:02.000486319
+Blink: 2025-04-20 17:59:04.000750134
+Blink: 2025-04-20 17:59:06.000936838
+Blink: 2025-04-20 17:59:08.001085115
+Blinking finished: 2025-04-20 17:59:11.001536718

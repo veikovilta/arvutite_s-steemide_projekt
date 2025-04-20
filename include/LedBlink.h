@@ -12,8 +12,8 @@
 #include <time.h>
 
 #define GPIO_LINE_MAIN_BLINK 17 
-#define BLINK_COUNT_CALIBRATION 5
-#define BLINK_COUNT_MAIN_PROGRAM 5 
+#define BLINK_COUNT_CALIBRATION 100
+#define BLINK_COUNT_MAIN_PROGRAM 10 
 
 void ledBlinking20(struct args_port* args, char** buffer);
 //void* ledBlinkOnce(void* arg);

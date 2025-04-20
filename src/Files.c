@@ -71,7 +71,7 @@ void write_log_to_file(const char *buffer) {
     // Step 4: Create the dated directory if it doesn't exist
     struct stat st = {0};
     if (stat(full_dir, &st) == -1) {
-        if (mkdir(full_dir, 0755) != 0) {
+        if (mkdir(full_dir, 0777) != 0) {
             perror("Failed to create dated log directory");
             return;
         }

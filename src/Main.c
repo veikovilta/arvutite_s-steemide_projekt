@@ -276,6 +276,7 @@ int main(void) {
 				free(buffer);  // Free the old buffer
 				buffer = NULL; // Set to NULL to reset static variables in append_to_buffer
 			}
+            ShowReady(0);
         } else {
             free(buffer);
             runAgain = 0;

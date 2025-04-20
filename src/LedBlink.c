@@ -8,10 +8,15 @@
 #include <gpiod.h>
 #include "Files.h"
 #include <time.h>
+#include "display.h"
 
 void ledBlinkingCalibration(int blinkCount)
 {
     struct port *openedPort = openPort(GPIO_LINE_MAIN_BLINK, "debug", false); // 'true' for output
+
+    SetOledMessage("Calibration started", 0, 0, true);
+    preciseSleep(0.5);
+    SetOledMessage("Press button to stop", 0, 2, false);
 
     for (int i = 0; i < blinkCount; i++) {
         // Turn the LED on
@@ -25,6 +30,13 @@ void ledBlinkingCalibration(int blinkCount)
         
         // Sleep for 1 second
         preciseSleep(1.75); // Sleep for 1 second
+
+        if (IsButtonPressed())
+        {
+            SetOledMessage("Calibration stopped", 0, 0, true);
+            break;
+        }
+        
     }
     
     // Clean up

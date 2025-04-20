@@ -299,7 +299,7 @@ int CheckSync(char** buffer)
     //SetOledMessage(message, 0, 2, false); 
     // Check synchronization status
     // piiriks 0.1 ms
-    if (systemOffset < 0.0001 && systemOffset > -0.0001) 
+    if (systemOffset < 0.001 && systemOffset > -0.001) 
     {
       	 return 0;
     }
@@ -489,12 +489,13 @@ const char* WaitForButtonAndSelectConfig(const char* state1Value,
 int IsButtonPressed(void)
 {
 	pthread_mutex_lock(&buttonLock);
-	if(buttonPressed)
-	{
-		buttonPressed = 0; 
-		return 1;
-	}
-	pthread_mutex_unlock(&buttonLock);
+	int pressed = 0;
 
-	return 0;
+	if (buttonPressed) {
+		buttonPressed = 0;
+		pressed = 1;
+	}
+
+	pthread_mutex_unlock(&buttonLock);
+	return pressed;
 }
