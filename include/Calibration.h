@@ -3,5 +3,6 @@
 
 void CalibrateSaatja();
 void CalibrateVastuvotja(); 
+void Calibrate();
 
 #endif

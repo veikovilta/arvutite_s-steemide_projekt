@@ -12,18 +12,36 @@
 int CountBlinks() {
     int blinkCount = 0;
     struct port *openedPort = openPort(GPIO_PIN_LED, "GPIO PIN 22", true);
-
+    char numberStr[20] = "";
+    SetOledMessage("Waiting blinks ...", 0, 0, true);
+    int breakCounter = 0;
     for (int i = 0; i < BLINK_COUNT_CALIBRATION; i++) {
         // Wait for the GPIO pin to go HIGH
         while (gpiod_line_get_value(openedPort->line) == 0) {
             preciseSleep(0.001);
+            breakCounter++;
+
+            // Stop if no blinking is detected for 4 seconds
+            if (breakCounter > 4000) {
+                breakCounter = -1;
+                SetOledMessage("Stopped, 4sec", 0, 0, true);
+                preciseSleep(1);
+                break;
+            }
         }
 
         // Wait for the GPIO pin to go LOW
         while (gpiod_line_get_value(openedPort->line) == 1) {
             preciseSleep(0.3);
         }
-
+        // Check if the break condition was met
+        if (breakCounter == -1) {
+            break;
+        }
+        
+        breakCounter = 0;
+        sprintf(numberStr, "Blink %d detected\n", i + 1);
+        SetOledMessage(numberStr, 0, 2, false);
         blinkCount++;
     }
 
@@ -85,7 +103,7 @@ double* RegisterBlinks(char **buffer, int *count) {
             if (breakCounter > 4000) {
                 breakCounter = -1;
                 SetOledMessage("Stopped, 4sec", 0, 0, true);
-                TimeStampToBuffer(buffer, "Sensor stopped due to no blinking after 4sec");
+                TimeStampToBuffer(buffer, "Sensor stopped due to no blinking after 4sec: ");
                 preciseSleep(1);
                 break;
             }

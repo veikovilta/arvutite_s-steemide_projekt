@@ -1,0 +1,29 @@
+Start: 2025-04-20 10:26:31.854931502
+Button thread created
+Picked configuration: saatja
+Start synchronizing: 2025-04-20 10:26:46.739687491
+Offset: 0.0001696
+Offset: 0.0001910
+Offset: 0.0001496
+Offset: 0.0013181
+Offset: 0.0006709
+Offset: 0.0002298
+Offset: 0.0017824
+Offset: 0.0011244
+Offset: 0.0004825
+Offset: 0.0003245
+Offset: 0.0003092
+Offset: 0.0002185
+Offset: 0.0003558
+Offset: 0.0001083
+Offset: 0.0001005
+Offset: 0.0000926
+Synchronized
+Blinking program start: 2025-04-20 10:28:20.681735249
+First sync blink: 2025-04-20 10:28:20.681937692
+Blink: 2025-04-20 10:29:00.000406398
+Blink: 2025-04-20 10:29:02.000579349
+Blink: 2025-04-20 10:29:04.000753671
+Blink: 2025-04-20 10:29:06.000942642
+Blink: 2025-04-20 10:29:08.001119810
+Blinking finished: 2025-04-20 10:29:11.001570178

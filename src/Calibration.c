@@ -50,13 +50,13 @@ void CalibrateSaatja()
 {
     while(1)
     {
-        const char* choice = WaitForButtonAndSelectConfig((const char*)"Calibrate", (const char*)"Contioue", (const char*)" ");   
+        const char* choice = WaitForButtonAndSelectConfig((const char*)"Calibrate", (const char*)"End", (const char*)"None");   
     
         if(!strcmp(choice, (const char*)"Calibrate"))
         {
             ledBlinkingCalibration(BLINK_COUNT_CALIBRATION);
         }
-        else if(!strcmp(choice, (const char*)"Contioue"))
+        else if(!strcmp(choice, (const char*)"End"))
         {
             break;
         }
@@ -70,16 +70,36 @@ void CalibrateVastuvotja()
 {
     while(1)
     {
-        const char* choice = WaitForButtonAndSelectConfig((const char*)"Calibrate", (const char*)"Contioue", (const char*)" ");   
+        const char* choice = WaitForButtonAndSelectConfig((const char*)"Calibrate", (const char*)"End", (const char*)"None");   
     
         if(!strcmp(choice, (const char*)"Calibrate"))
         {
-            ledBlinkingCalibration(BLINK_COUNT_CALIBRATION);
+            int numOfBlinks = CountBlinks();
+            if (numOfBlinks == BLINK_COUNT_CALIBRATION) {
+                SetOledMessage("Calibration OK", 0, 0, true);
+            } else {
+                SetOledMessage("Calibration Failed", 0, 0, true);
+                preciseSleep(1);
+                SetOledMessage("Turn potentsiometer", 0, 2, false);
+            }
+            preciseSleep(2);
         }
-        else if(!strcmp(choice, (const char*)"Contioue"))
+        else if(!strcmp(choice, (const char*)"End"))
         {
             break;
         }
     }
 }
 
+void Calibrate()
+{
+    const char* saatjaOrVastuvotja = WaitForButtonAndSelectConfig("saatja", "vastuvotja", "END");
+    
+    if (strcmp(saatjaOrVastuvotja, "saatja") == 0) {
+        CalibrateSaatja();
+    } else if (strcmp(saatjaOrVastuvotja, "vastuvotja") == 0) {
+        CalibrateVastuvotja();
+    }
+
+    return; 
+}

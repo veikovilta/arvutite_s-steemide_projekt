@@ -79,7 +79,7 @@ int main(void) {
 
     // Wait for user to select configuration
     do {
-        startState = WaitForButtonAndSelectConfig("SHUTDOWN", " ", "START");
+        startState = WaitForButtonAndSelectConfig("SHUTDOWN", "CALIBRATE", "START");
 
         if (strcmp(startState, "SHUTDOWN") == 0) {
             free(buffer);
@@ -100,9 +100,16 @@ int main(void) {
             }
             return 1;
         } else if (strcmp(startState, "START") == 0) {
+            
             SetOledMessage("STARTING...", 0, 0, true);
             preciseSleep(1.5);
+
+        } else if (strcmp(startState, "CALIBRATE") == 0) {
+            
+            preciseSleep(1);
+            Calibrate();
         }
+
     } while (strcmp("START", startState) != 0);
 
     //##########################################################################
@@ -160,9 +167,10 @@ int main(void) {
 
             struct timespec firstblink = ledBlinkOnce(&ledBlinkPort, &buffer);
 
+    
             SetOledMessage("Next min blink", 0, 0, true);
             preciseSleep(0.5);
-            SetOledMessage("Waiting", 0, 2, false);
+            SetOledMessage("sleeping...", 0, 2, false);
 
             printf("LED blink time: %ld seconds and %ld nanoseconds\n",
                    (long)firstblink.tv_sec, (long)firstblink.tv_nsec);
@@ -170,10 +178,10 @@ int main(void) {
 
             WaitForNextMinuteBlinker(firstblink);
 
-            printf("Start blinking\n");
+            SetOledMessage("Blinking...", 0, 0, true);
             ledBlinking20(&ledBlinkPort, &buffer);
 
-            SetOledMessage("FINISHED", 0, 0, true);
+            SetOledMessage("FINISHED", 0, 2, true);
             preciseSleep(1);
 
             printf("Blinking finished\n");
@@ -192,6 +200,7 @@ int main(void) {
                 }
                 preciseSleep(0.1);
             }
+        
         } else if (!strcmp(saatjaOrVastuvotja, "vastuvotja")) {
 
             TimeStampToBuffer(&buffer, "Sensor program start: ");

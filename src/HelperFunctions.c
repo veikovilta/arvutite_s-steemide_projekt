@@ -410,7 +410,7 @@ void WaitForNextMinuteBlinker(struct timespec firstblink) {
 
     // Print checking status
     printf("Checking if it's less than 10 sec to the next full minute\n");
-    fflush(stdout);
+    //fflush(stdout);
     
     // Calculate if within 10 seconds of the next full minute
     if (60 - (firstblink.tv_sec % 60) <= 10) {
@@ -418,7 +418,7 @@ void WaitForNextMinuteBlinker(struct timespec firstblink) {
     }
 
     printf("Waiting for the next minute\n");
-    fflush(stdout);
+    //fflush(stdout);
 
     // Loop until the next full minute
     while (1) {
