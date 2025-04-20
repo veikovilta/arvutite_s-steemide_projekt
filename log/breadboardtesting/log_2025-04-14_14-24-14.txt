@@ -1,0 +1,17 @@
+Start: 2025-04-14 14:22:13.166300810
+Button thread created
+Picked configuration: saatja
+Starting log in run again mode: 
+2025-04-14 14:22:45.230031716
+Picked configuration: saatja
+Start syncronizing: 2025-04-14 14:22:46.017785674
+Offset: 0.0000148
+Syncronized
+Blinking program start: 2025-04-14 14:22:52.824382312
+First sync blink: 2025-04-14 14:22:52.824742105
+Blink: 2025-04-14 14:24:00.000317903
+Blink: 2025-04-14 14:24:02.000502043
+Blink: 2025-04-14 14:24:04.000678665
+Blink: 2025-04-14 14:24:06.000858620
+Blink: 2025-04-14 14:24:08.001038323
+Blinking finished: 2025-04-14 14:24:11.791640895

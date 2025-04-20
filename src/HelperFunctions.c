@@ -1,5 +1,3 @@
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -12,7 +10,6 @@
 #include <string.h>
 #include "display.h"
 #include "Files.h"
-#include "State.h"
 #include <signal.h>
 #include "Main.h"
 
@@ -65,7 +62,7 @@ void preciseSleep(double seconds) {
 
     // Break down the seconds into whole seconds and nanoseconds
     req.tv_sec = (time_t)seconds; // Get the whole seconds part
-    req.tv_nsec = (long)((seconds - (double)req.tv_sec) * 1e9); // Convert the fractional part to nanoseconds
+    req.tv_nsec = (long)((seconds - req.tv_sec) * 1e9); // Convert the fractional part to nanoseconds
 
     int ret = clock_nanosleep(CLOCK_REALTIME, 0, &req, &rem);
 
@@ -94,25 +91,7 @@ void signalHandler(int signum) {
     printf("Program terminated cleanly.\n");
     exit(0);
 }
-/*
-void* oled_thread(void* arg)
-{
-	int i2cHandle = i2cInit("/dev/i2c-1", OLED_I2C_ADDR);
-	if (i2cHandle < 0) return -1;
 
-	while (programRunning)
-	{
-		if(bufferHasBeenUpdated)
-		{		
-			pthread_mutex_lock(&oledLock);
-			oledWriteText(i2cHandle, 0, 0, oledBuffer);
-
-		    pthread_mutex_unlock(&oledLock);
-		}
-		preciseSleep(0.5);    	
-	}
-}
-*/
 void* readButtonState_thread(void* arg) {
     struct args_port* args = (struct args_port*) arg;
     struct port *openedPort = openPort(args->portPin, args->debugName, args->inputOutput);
@@ -132,6 +111,7 @@ void* readButtonState_thread(void* arg) {
     int buttonState = 0;
     int prevButtonState = 0;
 	int lastReportedState = 0;
+	char *new_argv[] = { "sudo", "./projekt", NULL };
 
 	
     while(programRunning) {
@@ -150,7 +130,6 @@ void* readButtonState_thread(void* arg) {
         if (debounceCount >= debounceThreshold && buttonState != lastReportedState) {
 
             if (buttonState == 1) {
-                printf("Button is pressed!\n");
                 pthread_mutex_lock(&buttonLock);
 			    buttonPressed = 1;
                 pthread_mutex_unlock(&buttonLock);
@@ -166,8 +145,12 @@ void* readButtonState_thread(void* arg) {
             buttonPressedTime += 0.01; // 10 ms per loop
             if (buttonPressedTime >= shutdownHoldTime) 
             {
-                printf("Shutting down...\n");
-                //system("shutdown -h now");
+                //printf("Restarting...\n");
+				SetOledMessage("Restarting...", 0, 0, true);
+				preciseSleep(1); 
+                if (system("sudo systemctl restart mooteseade.service") != 0) {
+                    perror("Failed to restart");
+                }
                 programRunning = 0;
                 break;
             }
@@ -185,6 +168,7 @@ void* readButtonState_thread(void* arg) {
     ClosePort(openedPort);	
     return NULL;
 }
+
 void ClosePort(struct port* openedPort)
 {
     //gpiod_line_set_value(openedPort->line, 0);
@@ -206,7 +190,7 @@ void ShowReady(int outputValue)
     ClosePort(openedPort);
 }
 
-void AddSystemOffsetToBuffer(char** buffer, int i2cHandle)
+void AddSystemOffsetToBuffer(char** buffer)
 {
 	FILE *fp;
     double systemOffset = 0.0;
@@ -218,9 +202,11 @@ void AddSystemOffsetToBuffer(char** buffer, int i2cHandle)
 	fp = popen("chronyc tracking", "r");
 	if (fp == NULL) 
 	{
-	    oledClear(i2cHandle); // Clear the display
-	    oledWriteText(i2cHandle, 0, 0, "Failed to run chronyc command.");
-	    oledWriteText(i2cHandle, 0, 2, "Shutting Down");
+	    //oledClear(i2cHandle); // Clear the display
+        SetOledMessage("Failed to run chronyc command.", 0, 0, true); 
+        SetOledMessage("Shutting Down", 0, 0, false); 
+        //oledWriteText(i2cHandle, 0, 0, "Failed to run chronyc command.");
+	    //oledWriteText(i2cHandle, 0, 2, "Shutting Down");
 	    printf("Error with chronyc, shutting down\n");
 	    //system ("sudo shutdown -h now");
 	   	return;
@@ -254,7 +240,7 @@ void AddSystemOffsetToBuffer(char** buffer, int i2cHandle)
 	append_to_buffer(buffer, message);
 }
 
-int CheckSync(int i2cHandle, char** buffer)
+int CheckSync(char** buffer)
 {
     FILE *fp;
     double systemOffset = 0.0;
@@ -266,11 +252,15 @@ int CheckSync(int i2cHandle, char** buffer)
     fp = popen("chronyc tracking", "r");
     if (fp == NULL) 
     {
-        oledClear(i2cHandle); // Clear the display
-        oledWriteText(i2cHandle, 0, 0, "Failed to run chronyc command.");
-        oledWriteText(i2cHandle, 0, 2, "Shutting Down");
+        //oledClear(i2cHandle); // Clear the display
+        //oledWriteText(i2cHandle, 0, 0, "Failed to run chronyc command.");
+        //oledWriteText(i2cHandle, 0, 2, "Shutting Down");
+        SetOledMessage("Failed to run chronyc command.", 0, 0, true); 
+        SetOledMessage("Shutting Down", 0, 0, false); 
         printf("Error with chronyc, shutting down\n");
-        //system ("sudo shutdown -h now");
+        if (system("sudo systemctl status mooteseade.service") != 0) {
+            perror("Failed to restart");
+        }
         return 1;
     }
 
@@ -299,75 +289,22 @@ int CheckSync(int i2cHandle, char** buffer)
     sprintf(numberStr, "%.7f", systemOffset);
     snprintf(message, sizeof(message), "Offset: %7s\n", numberStr);
     append_to_buffer(buffer, message);
-    oledClear(i2cHandle);
+    //oledClear(i2cHandle);
     // Display a message on the OLED
     
-    oledWriteText(i2cHandle, 0, 0, "Syncronized");
-    
-    oledWriteText(i2cHandle, 0, 2, message);
-
+    //oledWriteText(i2cHandle, 0, 0, "Syncronized");
+    //SetOledMessage("Syncronized", 0, 0, true); 
+    //oledWriteText(i2cHandle, 0, 2, message);
+    //preciseSleep(0.5);
+    //SetOledMessage(message, 0, 2, false); 
     // Check synchronization status
     // piiriks 0.1 ms
-    if (systemOffset < 0.0001 && systemOffset > -0.0001) 
+    if (systemOffset < 0.001 && systemOffset > -0.001) 
     {
       	 return 0;
     }
 
     return 1;
-}
-
-void printDelaysToFile(const char *filename, double *data, int count, double averageDelay)
-{
-    FILE *file = fopen(filename, "w"); // Open file for writing
-
-    if (file == NULL) {
-        perror("Error opening file"); // Handle file opening error
-        return;
-    }
-
-    // Print each delay value to the file
-    fprintf(file, "Delays:\n");
-    for (int i = 0; i < count; i++) {
-        fprintf(file, "Delay %d: %.2f\n", i + 1, data[i]);
-    }
-
-    // Print the average delay to the file
-    fprintf(file, "\nAverage Delay: %.2f\n", averageDelay); // Print average to file
-
-    fclose(file); // Close the file
-}
-
-int IsButtonPressed(void)
-{
-	pthread_mutex_lock(&buttonLock);
-	if(buttonPressed)
-	{
-		buttonPressed = 0; 
-		return 1;
-	}
-	pthread_mutex_unlock(&buttonLock);
-
-	return 0;
-}
-
-const char* checkButtonState(struct port* port1, struct port* port2) {
-    
-    int state1 = gpiod_line_get_value(port1->line);
-    int state2 = gpiod_line_get_value(port2->line);
-
-    if (state1 < 0 || state2 < 0) {
-        perror("Failed to read GPIO line value");
-        return "error";
-    }
-
-    // Determine the button state
-    if (state1 == 1 && state2 == 0) {
-        return "saatja";  // Button pressed for "saatja"
-    } else if (state1 == 0 && state2 == 1) {
-        return "vastuvotja";  // Button pressed for "vastuvotja"
-    } else {
-        return "undefined";  // Undefined state
-    }
 }
 
 const char* waitForButtonState(int port1, int port2, const char* state1Value, const char* state2Value) 
@@ -386,8 +323,6 @@ const char* waitForButtonState(int port1, int port2, const char* state1Value, co
         perror("Failed to read GPIO line value");
         return "error";
     }
-
-	printf("state1: %d, state2: %d\n", state1, state2);
 	
     // Determine the button state
     if (state1 == 1 && state2 == 0)
@@ -405,14 +340,15 @@ const char* waitForButtonState(int port1, int port2, const char* state1Value, co
     return "undefined";  // Undefined state
 }
 
-int ChronySync(int i2cHandle, char** buffer)
+
+int ChronySync(char** buffer)
 {
     // message string
     char message[100] = "";  
     char numberStr[20] = "";
 
-	oledWriteText(i2cHandle, 0, 0, "Syncronizing");    
-	
+	//oledWriteText(i2cHandle, 0, 0, "Syncronizing");    
+	SetOledMessage("Syncronizing", 0, 0, true); 
     // teeb 60 sekundilist checki kui hea kell on
     // 10min vähemalt
     int minutes = 0;
@@ -420,7 +356,8 @@ int ChronySync(int i2cHandle, char** buffer)
     {
         preciseSleep(5);
    		 
-        if (CheckSync(i2cHandle, buffer) == 0)
+    
+        if (CheckSync(buffer) == 0)
         {
             break;
         }
@@ -431,30 +368,35 @@ int ChronySync(int i2cHandle, char** buffer)
             snprintf(message, sizeof(message), "seconds waited : %s", numberStr);
             printf("%s\n", message);
             
-            oledWriteText(i2cHandle, 0, 0, "Syncronizing");
-                
-            oledWriteText(i2cHandle, 0, 2, message);
+            //oledWriteText(i2cHandle, 0, 0, "Syncronizing");
+            SetOledMessage("Syncronizing", 0, 0, true); 
+            preciseSleep(0.5);
+            SetOledMessage(message, 0, 2, false); 
+            //oledWriteText(i2cHandle, 0, 2, message);
         }
         
         minutes+=5;
 
-        // kui ei ole syncis 10 mintaga siis error ja restart
+        // kui ei ole syncis 10 mintaga siis error
         if (minutes == 120)
         {
-            oledClear(i2cHandle);
+            //oledClear(i2cHandle);
             // Display a message on the OLED
-            oledWriteText(i2cHandle, 0, 0, "NOT SYNCED");
-            oledWriteText(i2cHandle, 2, 0, "ERROR BAD RECEPTION");
-            oledWriteText(i2cHandle, 4, 0, "restarting");
-            
-            char *args[] = { "./projekt", NULL };
-            execvp(args[0], args);
-
-            perror("execvp failed");
-            
-            oledClear(i2cHandle);
-            oledWriteText(i2cHandle, 2, 0, "restarting failed");
- 
+            //oledWriteText(i2cHandle, 0, 0, "NOT SYNCED");
+            //oledWriteText(i2cHandle, 2, 0, "ERROR BAD RECEPTION");
+            //oledWriteText(i2cHandle, 4, 0, "Shutting Down");
+            SetOledMessage("NOT SYNCED", 0, 0, true); 
+            SetOledMessage("ERROR BAD RECEPTION", 0, 2, false);
+            SetOledMessage("Shutting Down", 0, 4, false); 
+            /*
+            if (system ("sudo shutdown -h now") != 0) {
+                perror("Failed to shutdown");
+                //oledClear(i2cHandle);
+                //oledWriteText(i2cHandle, 2, 0, "Shutting Down failed");
+                SetOledMessage("ERROR BAD RECEPTION", 2, 0, true);
+                // Handle the error or exit
+            }
+            */
             return 1;
         }
         
@@ -468,7 +410,7 @@ void WaitForNextMinuteBlinker(struct timespec firstblink) {
 
     // Print checking status
     printf("Checking if it's less than 10 sec to the next full minute\n");
-    fflush(stdout);
+    //fflush(stdout);
     
     // Calculate if within 10 seconds of the next full minute
     if (60 - (firstblink.tv_sec % 60) <= 10) {
@@ -476,7 +418,7 @@ void WaitForNextMinuteBlinker(struct timespec firstblink) {
     }
 
     printf("Waiting for the next minute\n");
-    fflush(stdout);
+    //fflush(stdout);
 
     // Loop until the next full minute
     while (1) {
@@ -491,38 +433,45 @@ void WaitForNextMinuteBlinker(struct timespec firstblink) {
     }
 }
 
-const char* WaitForButtonAndSelectConfig(int i2cHandle, const char* state1Value, const char* state2Value) 
+const char* WaitForButtonAndSelectConfig(const char* state1Value,
+											 const char* state2Value, const char* state3Value) 
 {
-    char* value;
+    char* value = "\0";
     char message[100] = "";
     char lastPicked[100] = "";
     // Lock and reset the buttonPressed flag
+
+    pthread_mutex_unlock(&buttonLock);
     pthread_mutex_lock(&buttonLock);
     buttonPressed = 0;
     pthread_mutex_unlock(&buttonLock);
-	
+
     while (1) {
 
         // Wait for button state and get the selected config
         value = waitForButtonState(24, 25, state1Value, state2Value);
+
+        if(strcmp(value, "undefined") == 0){
+			value = state3Value; 
+		}
+
         sprintf(message, "Selected:%s\n", value);
 		
         if (lastPicked[0] == '\0') {
-            oledWriteText(i2cHandle, 0, 0, "PRESS BUTTON TO PICK");
-            oledWriteText(i2cHandle, 1, 2, message);
-            printf("%s\n", message); 
-        }
-        
-        if(strcmp(value, lastPicked) != 0){
-		    oledClear(i2cHandle);
-            oledWriteText(i2cHandle, 0, 0, "PRESS BUTTON TO PICK");
-            oledWriteText(i2cHandle, 1, 2, message);
+            SetOledMessage("PRESS BUTTON TO PICK", 0, 0, true);
+            preciseSleep(0.5);
+            SetOledMessage(message, 1, 2, false);
             printf("%s\n", message); 
         }
 
+        if(strcmp(value, lastPicked) != 0 && strcmp("", lastPicked) != 0){
+            SetOledMessage("PRESS BUTTON TO PICK", 0, 0, true);
+            preciseSleep(0.5);
+            SetOledMessage(message, 1, 2, false);
+            printf("%s\n", message); 
+        }
 	    strcpy(lastPicked, value);
         preciseSleep(0.5);
-
         // Check if button was pressed, exit loop if true
         pthread_mutex_lock(&buttonLock);
         //printf("%d\n", buttonPressed);
@@ -537,62 +486,16 @@ const char* WaitForButtonAndSelectConfig(int i2cHandle, const char* state1Value,
     return value;
 }
 
-int check_ethernet_connected(void) {
-    struct ifaddrs *ifaddr, *ifa;
-    int found = 0;
+int IsButtonPressed(void)
+{
+	pthread_mutex_lock(&buttonLock);
+	int pressed = 0;
 
-    if (getifaddrs(&ifaddr) == -1) {
-        perror("getifaddrs");
-        return 0;
-    }
+	if (buttonPressed) {
+		buttonPressed = 0;
+		pressed = 1;
+	}
 
-    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
-        if (ifa->ifa_addr == NULL) continue;
-
-        if ((ifa->ifa_flags & IFF_UP) && (ifa->ifa_flags & IFF_RUNNING) && 
-            (ifa->ifa_addr->sa_family == AF_INET) &&
-            (strcmp(ifa->ifa_name, "eth0") == 0)) {
-
-            char ip[INET_ADDRSTRLEN];
-            struct sockaddr_in *sa = (struct sockaddr_in *)ifa->ifa_addr;
-            inet_ntop(AF_INET, &(sa->sin_addr), ip, INET_ADDRSTRLEN);
-
-            if (strcmp(ip, "0.0.0.0") != 0) {  // Make sure it's not a dummy IP
-                found = 1;
-                break;
-            }
-        }
-    }
-
-    freeifaddrs(ifaddr);
-    return found;
+	pthread_mutex_unlock(&buttonLock);
+	return pressed;
 }
-
-/*
-int CreateButtonThread(int i2cHandle, pthread_t* buttonThread) {
-
-    struct args_port args;
-    args.portPin = GPIO_BUTTON;
-    args.debugName = "InputButton";
-	args.inputOutput = true;
-
-    if(pthread_create(buttonThread, NULL, readButtonState_thread, (void*)&args) < 0)
-    {
-        perror("Failed to create thread");
-        oledClear(i2cHandle);
-        oledWriteText(i2cHandle, 0, 0, "ERROR Failed to create thread");
-        oledWriteText(i2cHandle, 2, 0, "Shutting Down");
-        
-        if (system("sudo shutdown -h now") != 0) {
-            perror("Failed to shutdown");
-            oledClear(i2cHandle);
-            oledWriteText(i2cHandle, 2, 0, "Shutting Down failed");
-        }
-        return 1;
-    }
-
-    printf("Button thread created\n");
-
-    return 0; 
-}
-*/

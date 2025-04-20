@@ -1,0 +1,9 @@
+Starting log in run again mode: 
+2025-04-19 21:31:04.433537366
+Picked configuration: None
+Start synchronizing: 2025-04-19 21:31:04.433609718
+Offset: 0.0002571
+Offset: 0.0016289
+Offset: 0.0001584
+Offset: 0.0000478
+Synchronized

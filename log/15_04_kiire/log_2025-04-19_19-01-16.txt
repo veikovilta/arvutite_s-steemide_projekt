@@ -1,0 +1,23 @@
+Start: 2025-04-19 18:59:16.407539472
+Button thread created
+Picked configuration: vastuvotja
+Start synchronizing: 2025-04-19 18:59:54.000773556
+Offset: 0.0000811
+Synchronized
+Sensor program start: 2025-04-19 18:59:59.841614121
+Got first blink: 2025-04-19 19:00:29.068083199
+Sender start time: 2025-04-19 19:01:00.000035832
+Seen at: 2025-04-19 19:01:02.709565977
+Delay: 709.53012 ms
+Seen at: 2025-04-19 19:01:05.645722386
+Delay: 1645.49663 ms
+Seen at: 2025-04-19 19:01:08.090877164
+Delay: 90.46129 ms
+Seen at: 2025-04-19 19:01:10.276116174
+Delay: 275.51037 ms
+Seen at: 2025-04-19 19:01:12.338567011
+Delay: 337.77126 ms
+Average: 611.7539321
+Sensor finished: 2025-04-19 19:01:13.238986367
+Clock offset: 0.0001701
+End: 2025-04-19 19:01:13.251153064

@@ -12,7 +12,13 @@ void append_to_buffer(char **buffer, const char *data) {
 
     int data_length = (int)strlen(data);
 
-    // Initialize the buffer if it's the first call
+    // Reset static variables if the buffer is NULL
+    if (*buffer == NULL) {
+        current_size = 0;
+        buffer_capacity = 0;
+    }
+
+    // Initialize the buffer if it's the first call or after being reset
     if (*buffer == NULL) {
         *buffer = malloc(INITIAL_BUFFER_SIZE);
         if (!*buffer) {
@@ -48,38 +54,48 @@ void append_to_buffer(char **buffer, const char *data) {
 }
 
 void write_log_to_file(const char *buffer) {
-    // Step 1: Create the log directory if it doesn't exist
-    const char *log_dir = "../log/breadboardtesting";
-    struct stat st = {0};
+    // Step 1: Base path to the main log folder
+    const char *base_path = "/home/reval/Documents/reval/arvutite_s-steemide_projekt/log";
 
-    if (stat(log_dir, &st) == -1) {
-        if (mkdir(log_dir, 0755) != 0) {
-            perror("Failed to create log directory");
+    // Step 2: Get current date for subdirectory
+    time_t now = time(NULL);
+    struct tm *t = localtime(&now);
+
+    char dated_dir[256];
+    strftime(dated_dir, sizeof(dated_dir), "%Y-%m-%d", t);
+
+    // Step 3: Combine base path and dated directory
+    char full_dir[512];
+    snprintf(full_dir, sizeof(full_dir), "%s/%s", base_path, dated_dir);
+
+    // Step 4: Create the dated directory if it doesn't exist
+    struct stat st = {0};
+    if (stat(full_dir, &st) == -1) {
+        if (mkdir(full_dir, 0777) != 0) {
+            perror("Failed to create dated log directory");
             return;
         }
     }
 
-    // Step 2: Get the current date to create a unique filename
-    char filename[100];
-    time_t now = time(NULL);
-    struct tm *t = localtime(&now);
+    // Step 5: Create the log filename (based on time)
+    char time_filename[64];
+    strftime(time_filename, sizeof(time_filename), "log_%H:%M:%S.txt", t);
 
-    // Format filename as "log_<YYYY-MM-DD>.txt" in the log directory
-    strftime(filename, sizeof(filename), "../log/breadboardtesting/log_%Y-%m-%d_%H-%M-%S.txt", t);
-    
-    // Step 3: Open the file for writing
-    FILE *file = fopen(filename, "w");
+    // Step 6: Combine full path to file
+    char full_path[1024];
+    snprintf(full_path, sizeof(full_path), "%s/%s", full_dir, time_filename);
+
+    // Step 7: Open and write
+    FILE *file = fopen(full_path, "w");
     if (file == NULL) {
         perror("Failed to open log file");
         return;
     }
 
-    // Step 4: Write the buffer contents to the file
     fwrite(buffer, sizeof(char), strlen(buffer), file);
-
-    // Step 5: Close the file
     fclose(file);
-    printf("Log written to %s\n", filename);
+
+    printf("Log written to %s\n", full_path);
 }
 
 char* getCurrentTimestamp(const char *prefix) {

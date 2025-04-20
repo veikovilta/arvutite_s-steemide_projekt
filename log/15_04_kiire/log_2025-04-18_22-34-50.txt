@@ -1,0 +1,9 @@
+Starting log in run again mode: 
+2025-04-18 22:34:30.491689015
+Picked configuration: Switch state
+Start synchronizing: 2025-04-18 22:34:30.491760094
+Offset: 0.0001759
+Offset: 0.0002760
+Offset: 0.0003888
+Offset: 0.0000570
+Synchronized

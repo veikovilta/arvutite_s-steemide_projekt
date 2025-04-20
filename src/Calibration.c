@@ -41,46 +41,22 @@
 #include <string.h>
 #include "Sensor.h"
 #include "LedBlink.h"
-#include "State.h"
 #include "Files.h"
 #include "Main.h"
+#include "Calibration.h"
 
-////////////// saatja //////////////////
-
-void CalibrateSaatja(int i2cHandle)
+void Calibrate()
 {
-    while(1)
-    {
-        const char* choice = WaitForButtonAndSelectConfig(i2cHandle, (const char*)"Calibrate", (const char*)"Contioue");   
-    
-        if(!strcmp(choice, (const char*)"Calibrate"))
-        {
+    const char* saatjaOrVastuvotja = WaitForButtonAndSelectConfig("saatja", "vastuvotja", "END");
+    while (strcmp(saatjaOrVastuvotja, "END") != 0) {
+        if (strcmp(saatjaOrVastuvotja, "saatja") == 0) {
             ledBlinkingCalibration(BLINK_COUNT_CALIBRATION);
+        } else if (strcmp(saatjaOrVastuvotja, "vastuvotja") == 0) {
+            CountBlinks();
         }
-        else if(!strcmp(choice, (const char*)"Contioue"))
-        {
-            break;
-        }
+        saatjaOrVastuvotja = WaitForButtonAndSelectConfig("saatja", "vastuvotja", "END");
+        preciseSleep(0.5);
     }
+
+    return; 
 }
-
-////////////// vastuvotja ///////////////////
-
-
-void CalibrateVastuvotja(int i2cHandle)
-{
-    while(1)
-    {
-        const char* choice = WaitForButtonAndSelectConfig(i2cHandle, (const char*)"Calibrate", (const char*)"Contioue");   
-    
-        if(!strcmp(choice, (const char*)"Calibrate"))
-        {
-            ledBlinkingCalibration(BLINK_COUNT_CALIBRATION);
-        }
-        else if(!strcmp(choice, (const char*)"Contioue"))
-        {
-            break;
-        }
-    }
-}
-

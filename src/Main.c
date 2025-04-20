@@ -1,5 +1,3 @@
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -15,301 +13,303 @@
 #include <string.h>
 #include "Sensor.h"
 #include "LedBlink.h"
-#include "State.h"
 #include "Files.h"
 #include "Main.h"
 #include "Calibration.h"
 
-int main(void)
-{
-//##########################################################################
-	ShowReady(0);
-	
-	int i2cHandle = i2cInit("/dev/i2c-1", OLED_I2C_ADDR);
-	if (i2cHandle < 0) return -1;
-	
-	oledInit(i2cHandle);
-	oledClear(i2cHandle);
-	oledWriteText(i2cHandle, 0, 0, "Program started");
-	printf("Program started\n");
-	preciseSleep(1);
-	
-	//peab testima kas see ethernet test tootab v pean panema testima kuni on ja mingi ajaga valja lic
-	if (!check_ethernet_connected()) {
-        printf("Ethernet not connected! Exiting...\n");
-        oledClear(i2cHandle);
-        oledWriteText(i2cHandle, 0, 0, "No Ethernet!");
-        preciseSleep(3);
+int main(void) {
+    //##########################################################################
+    ShowReady(0);
+
+    printf("Program started\n");
+    preciseSleep(1);
+
+    // Initialize button lock mutex
+    pthread_mutex_init(&buttonLock, NULL);
+
+    // Configure button arguments
+    struct args_port args_btn;
+    args_btn.portPin = GPIO_BUTTON;
+    args_btn.debugName = "InputButton";
+    args_btn.inputOutput = true;
+
+    // Set up signal handler
+    signal(SIGINT, signalHandler);
+
+    char *buffer = NULL;
+
+    // Log the start timestamp
+    TimeStampToBuffer(&buffer, "Start: ");
+
+    // Create OLED thread
+    if (pthread_create(&oledThread, NULL, oled_thread, NULL) < 0) {
+        perror("Failed to create OLED thread");
+
+        if (system("sudo shutdown -h now") != 0) {
+            perror("Failed to shutdown");
+        }
         return 1;
     }
 
-    printf("Ethernet connected\n");
-    oledClear(i2cHandle);
-    oledWriteText(i2cHandle, 0, 0, "Ethernet connected!");
-    preciseSleep(1);
+    // Create button thread
+    if (pthread_create(&buttonThread, NULL, readButtonState_thread, (void *)&args_btn) < 0) {
+        perror("Failed to create button thread");
+        SetOledMessage("ERROR Failed to create thread", 0, 0, true);
+        SetOledMessage("Restarting program", 2, 0, false);
 
-    signal(SIGINT, signalHandler);
-
-    InstanceState = STARTING;
-    char *buffer = NULL;
-	
-    TimeStampToBuffer(&buffer, "Start: ");
-	
-//##########################################################################
-
-    if (system("sudo systemctl start chrony") != 0) {
-        perror("Failed to start chrony service");
-    }
-
-//##########################################################################
+        printf("Error with thread, restarting program\n");
     
-    //char numberStr[20] = "";
-
-		
-	
-	/*
-    pthread_mutex_init(&oledLock, NULL);
-
-
-	if(pthread_create(&oledThread, NULL, oled_thread, NULL) < 0)
-	{
-	    perror("Failed to create thread");
-	    
-	    if (system("sudo shutdown -h now") != 0) {
-	        perror("Failed to shutdown");
-	    }
-	    return 1;
-	}
-
-	*/
-	
-
-//##########################################################################
+        SetOledMessage(" ", 0, 0, true);
+        preciseSleep(0.5);
+        pthread_cancel(oledThread);
+        pthread_join(oledThread, NULL);
     
-    pthread_mutex_init(&buttonLock, NULL);
 
-    struct args_port args;
-    args.portPin = GPIO_BUTTON;
-    args.debugName = "InputButton";
-  	args.inputOutput = true;
-  
-    if(pthread_create(&buttonThread, NULL, readButtonState_thread, (void*)&args) < 0)
-    {
-        perror("Failed to create thread");
-        oledClear(i2cHandle);
-        oledWriteText(i2cHandle, 0, 0, "ERROR Failed to create thread");
-        oledWriteText(i2cHandle, 2, 0, "Shutting Down");
-        
-        if (system("sudo shutdown -h now") != 0) {
-            perror("Failed to shutdown");
-            oledClear(i2cHandle);
-            oledWriteText(i2cHandle, 2, 0, "Shutting Down failed");
+        if (system("sudo systemctl restart mooteseade.service") != 0) {
+            perror("Failed to restart");
         }
+
         return 1;
     }
 
     printf("Button thread created\n");
-	append_to_buffer(&buffer, "Button thread created\n");
+    append_to_buffer(&buffer, "Button thread created\n");
 
-//##########################################################################
+    const char *startState;
 
-    InstanceState = PICKING_CONFIG; 
-	char message[50];
-    const char* saatjaOrVastuvotja = WaitForButtonAndSelectConfig(i2cHandle, "saatja", "vastuvotja");
+    // Wait for user to select configuration
+    do {
+        startState = WaitForButtonAndSelectConfig("SHUTDOWN", "CALIBRATE", "START");
+
+        if (strcmp(startState, "SHUTDOWN") == 0) {
+            free(buffer);
+            SetOledMessage("Shutting down...", 0, 0, true);
+            preciseSleep(1);
+            programRunning = 0;
+            
+            pthread_cancel(buttonThread);
+            pthread_join(buttonThread, NULL);
+        
+            SetOledMessage(" ", 0, 0, true);
+            preciseSleep(0.5);
+            pthread_cancel(oledThread);
+            pthread_join(oledThread, NULL);        
+
+            if (system("sudo shutdown -h now") != 0) {
+                perror("Failed to shutdown");
+            }
+            return 1;
+        } else if (strcmp(startState, "START") == 0) {
+            
+            SetOledMessage("STARTING...", 0, 0, true);
+            preciseSleep(1.5);
+
+        } else if (strcmp(startState, "CALIBRATE") == 0) {
+            
+            preciseSleep(1);
+            Calibrate();
+        }
+
+    } while (strcmp("START", startState) != 0);
+
+    //##########################################################################
+
+    // Start chrony service for synchronization
+    if (system("sudo systemctl start chrony") != 0) {
+        perror("Failed to start chrony service");
+        printf("Error with chrony, restarting program\n");
+        if (system("sudo systemctl restart mooteseade.service") != 0) {
+            perror("Failed to restart");
+        }
+    }
+
+    //##########################################################################
+
+    char message[50];
+    const char *saatjaOrVastuvotja = WaitForButtonAndSelectConfig("saatja", "vastuvotja", "None");
     printf("You have chosen: %s\n", saatjaOrVastuvotja);
     snprintf(message, sizeof(message), "Picked configuration: %s\n", saatjaOrVastuvotja);
-    append_to_buffer(&buffer, message); 
-	//const char* saatjaOrVastuvotja = "vastuvotja";
+    append_to_buffer(&buffer, message);
 
-//##########################################################################
+    int runAgain = 0;
 
-
-	oledClear(i2cHandle);
-    InstanceState = SYNCHRONIZING; 
-	printf("Syncronizing\n");
-	TimeStampToBuffer(&buffer, "Start syncronizing: ");
-    
-    int synced = ChronySync(i2cHandle, &buffer);
-
-    if(!synced){
-        printf("Syncronized\n");
-        append_to_buffer(&buffer, "Syncronized\n");
-        ShowReady(1);
-    }
-
-
-//##########################################################################
-
-
-    if(!strcmp(saatjaOrVastuvotja, (const char*)"saatja"))
-    {
-        Saatja_Vastuvotja_State = SAATJA; 
-
-        printf("Starting: %s\n", "SAATJA"); 
-        
-        TimeStampToBuffer(&buffer, "Blinking program start: "); 
-
-        struct args_port ledBlinkPort; 
-
-        ledBlinkPort.portPin = GPIO_LINE_MAIN_BLINK; 
-        ledBlinkPort.debugName = "ledBlink";
-        ledBlinkPort.inputOutput = false;
-
-        struct timespec firstblink = ledBlinkOnce(&ledBlinkPort, &buffer);
-
-        oledClear(i2cHandle);
-        oledWriteText(i2cHandle, 0, 0, "Waiting");
-        oledWriteText(i2cHandle, 0, 2, "Next min blink");
-        // Print the time
-        printf("LED blink time: %ld seconds and %ld nanoseconds\n", 
-            (long)firstblink.tv_sec, (long)firstblink.tv_nsec);
-        fflush(stdout);
-
-        
-        InstanceState = WAITING_NEXT_MINUTE_LED; 
-	
-        WaitForNextMinuteBlinker(firstblink); 
-        
-        //InstanceState = LED_BLINKING;
-
-        printf("Start blinking\n");
-        ledBlinking20(&ledBlinkPort, &buffer);
-
-        InstanceState = BLINKING_FINISHED;
-
-        oledClear(i2cHandle);
-        oledWriteText(i2cHandle, 0, 0, "FINISHED");
-        
-        preciseSleep(1); 
-
-        printf("Blinking finished\n"); 
-        TimeStampToBuffer(&buffer, "Blinking finished: ");
-        
-        pthread_mutex_lock(&buttonLock);
-        buttonPressed = 0;
-        pthread_mutex_unlock(&buttonLock);
-
-        oledWriteText(i2cHandle, 0, 2, "PRESS BTN TO END");
-
-
-		/*
-        while (1)
-        {
-            if (IsButtonPressed())
-            {
-                printf("ENDED pressed\n");
-
-				break;
-            }
-
-            preciseSleep(0.1);
+    do {
+        // Log for "run again" mode
+        if (runAgain) {
+            TimeStampToBuffer(&buffer, "Starting log in run again mode: \n");
+            append_to_buffer(&buffer, message);
         }
-        */
-        
-    }
-    else if(!strcmp(saatjaOrVastuvotja, (const char*)"vastuvotja"))
-    {
-		
-    	
-        Saatja_Vastuvotja_State = VASTUVOTJA;
 
-		CalibrateVastuvotja(i2cHandle);
-		
-		
-		
-        TimeStampToBuffer(&buffer, "Sensor program start: "); 
+        // Synchronize using chrony
+        printf("Synchronizing\n");
+        TimeStampToBuffer(&buffer, "Start synchronizing: ");
 
-        printf("Starting: %s\n", "VASTUVOTJA"); 
-		        
-        double *delaysCalculated = RegisterBlinks(i2cHandle, &buffer); 
-
-        printf("Calculating average delay\n");
-        int numOfValidCalculations = 0;
-        double averageDelay = calculateAverage(delaysCalculated, &numOfValidCalculations); 
-        char averageDelayStr[50]; 
-    
-        sprintf(averageDelayStr, "Average: %.7f\n", averageDelay); // Format average delay
-        printf("%s\n",averageDelayStr);
-        append_to_buffer(&buffer, averageDelayStr); 
-
-        free(delaysCalculated);
-
-        oledClear(i2cHandle);
-        oledWriteText(i2cHandle, 0, 4, averageDelayStr);
-
-        TimeStampToBuffer(&buffer, "Sensor finished: "); 
-	
-        pthread_mutex_lock(&buttonLock);
-        buttonPressed = 0;
-        pthread_mutex_unlock(&buttonLock);
-		
-        //oledWriteText(i2cHandle, 0, 2, "PRESS BTN TO END");
-		/*
-        while (1)
-        {
-            if (IsButtonPressed())
-            {
-                break;
-            }
-
-            preciseSleep(0.1);
+        int synced = ChronySync(&buffer);
+        if (!synced) {
+            printf("Synchronized\n");
+            append_to_buffer(&buffer, "Synchronized\n");
+            ShowReady(1);
         }
-        */
-	
-    }
 
+        //##########################################################################
 
-//##########################################################################
+        if (!strcmp(saatjaOrVastuvotja, "saatja")) {
 
-    //oledClear(i2cHandle);
-    oledWriteText(i2cHandle, 0, 0, "Program finished");
-    oledWriteText(i2cHandle, 0, 2, "Shutting Down");
-    printf("Program finished\n"); 
+            printf("Starting: SAATJA\n");
+            SetOledMessage("Starting Saatja", 0, 0, true);
 
-	AddSystemOffsetToBuffer(&buffer, i2cHandle);	
-    TimeStampToBuffer(&buffer, "End: "); 
+            TimeStampToBuffer(&buffer, "Blinking program start: ");
+
+            struct args_port ledBlinkPort;
+            ledBlinkPort.portPin = GPIO_LINE_MAIN_BLINK;
+            ledBlinkPort.debugName = "ledBlink";
+            ledBlinkPort.inputOutput = false;
+
+            struct timespec firstblink = ledBlinkOnce(&ledBlinkPort, &buffer);
+
     
-    write_log_to_file(buffer);
-    free(buffer);
+            SetOledMessage("Next min blink", 0, 0, true);
+            preciseSleep(0.5);
+            SetOledMessage("sleeping...", 0, 2, false);
 
-	ShowReady(0);
+            printf("LED blink time: %ld seconds and %ld nanoseconds\n",
+                   (long)firstblink.tv_sec, (long)firstblink.tv_nsec);
+            fflush(stdout);
 
-	printf("Program finished before thread\n");
+            WaitForNextMinuteBlinker(firstblink);
 
-	programRunning = 0;
-	printf("programmRunning: %d\n", programRunning);
-	fflush(stdout); 
+            SetOledMessage("Blinking...", 0, 0, true);
+            ledBlinking20(&ledBlinkPort, &buffer);
 
-	pthread_cancel(buttonThread);
+            SetOledMessage("FINISHED", 0, 2, true);
+            preciseSleep(1);
+
+            printf("Blinking finished\n");
+            TimeStampToBuffer(&buffer, "Blinking finished: ");
+
+            pthread_mutex_lock(&buttonLock);
+            buttonPressed = 0;
+            pthread_mutex_unlock(&buttonLock);
+
+            SetOledMessage("PRESS BTN TO END", 0, 0, false);
+
+            while (1) {
+                if (IsButtonPressed()) {
+                    printf("ENDED pressed\n");
+                    break;
+                }
+                preciseSleep(0.1);
+            }
+        
+        } else if (!strcmp(saatjaOrVastuvotja, "vastuvotja")) {
+
+            TimeStampToBuffer(&buffer, "Sensor program start: ");
+            SetOledMessage("Starting VASTUVOTJA", 0, 0, true);
+
+            int numOfValidCalculations = 0;
+            double *delaysCalculated = RegisterBlinks(&buffer, &numOfValidCalculations);
+
+            printf("Calculating average delay\n");
+            double averageDelay = calculateAverage(delaysCalculated, &numOfValidCalculations);
+
+            char averageDelayStr[50];
+            sprintf(averageDelayStr, "Average: %.3f %s\n", averageDelay, "ms");
+            printf("%s\n", averageDelayStr);
+            append_to_buffer(&buffer, averageDelayStr);
+
+            free(delaysCalculated);
+
+            SetOledMessage(averageDelayStr, 0, 2, true);
+            preciseSleep(1);
+            TimeStampToBuffer(&buffer, "Sensor finished: ");
+        
+            pthread_mutex_lock(&buttonLock);
+            buttonPressed = 0;
+            pthread_mutex_unlock(&buttonLock);
+
+            AddSystemOffsetToBuffer(&buffer);
+            TimeStampToBuffer(&buffer, "End: ");
+
+            SetOledMessage("PRESS BTN TO END", 0, 0, false);
+
+            while (1) {
+                if (IsButtonPressed()) {
+                    printf("ENDED pressed\n");
+                    break;
+                }
+                preciseSleep(0.1);
+            }
+        }
+
+        //##########################################################################
+
+        write_log_to_file(buffer);
+
+        const char *endState = WaitForButtonAndSelectConfig("shutdown", "restart all", "run again");
+
+        if (strcmp(endState, "shutdown") == 0) {
+            runAgain = 0;
+            free(buffer);
+            break;
+        } else if (strcmp(endState, "restart all") == 0) {
+            SetOledMessage("Restarting program", 0, 2, true);
+            free(buffer);
+
+            pthread_cancel(buttonThread);
+            pthread_join(buttonThread, NULL);
+        
+            SetOledMessage(" ", 0, 0, true);
+            preciseSleep(0.5);
+            pthread_cancel(oledThread);
+            pthread_join(oledThread, NULL);
+        
+
+            if (system("sudo systemctl restart mooteseade.service") != 0) {
+                perror("Failed to restart");
+            }
+            runAgain = 0;
+            
+        } else if (strcmp(endState, "run again") == 0) {
+            runAgain = 1;
+			// Free and reset the buffer in "run again" mode
+			if (runAgain) {
+				free(buffer);  // Free the old buffer
+				buffer = NULL; // Set to NULL to reset static variables in append_to_buffer
+			}
+            ShowReady(0);
+        } else {
+            free(buffer);
+            runAgain = 0;
+        }
+
+    } while (runAgain == 1);
+
+    //##########################################################################
+
+    SetOledMessage("Program finished", 0, 0, true);
+    preciseSleep(1);
+    SetOledMessage("Shutting Down", 0, 0, true);
+    printf("Program finished\n");
+
+    ShowReady(0);
+
+    programRunning = 0;
+    printf("programRunning: %d\n", programRunning);
+    fflush(stdout);
+
+    pthread_cancel(buttonThread);
     pthread_join(buttonThread, NULL);
 
-	printf("Program finished before BUTTONLOCK DESTROCTION\n");
+    SetOledMessage(" ", 0, 0, true);
+    preciseSleep(0.5);
+    pthread_cancel(oledThread);
+    pthread_join(oledThread, NULL);
 
     pthread_mutex_destroy(&buttonLock);
 
-	//pthread_join(oledThread, NULL);	
-    //pthread_mutex_destroy(&oledLock);
-
-	printf("Program finished before i2c\n");
-
-    oledClear(i2cHandle);
-		
-    if (i2cHandle){
-        close(i2cHandle);
-    }
-
-	printf("Program finished\n");
-	
-    /*if (system ("sudo shutdown -h now") != 0) {
+    if (system("sudo shutdown -h now") != 0) {
         perror("Failed to shutdown");
-        oledClear(i2cHandle);
-        oledWriteText(i2cHandle, 2, 0, "Shutting Down failed");
-        // Handle the error or exit
-    }*/
-
-
-//##########################################################################
-
+    }
 
     return 0;
 }
