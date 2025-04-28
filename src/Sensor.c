@@ -10,6 +10,8 @@
 #include "LedBlink.h"
 
 void CountBlinks() {
+    SetSystemState("CALIBRATE-->RECEIVER");
+    
     int end = 0;
     struct port *openedPort = openPort(GPIO_PIN_LED, "GPIO PIN 22", true);
     char numberStr[20] = "";
@@ -43,6 +45,7 @@ void CountBlinks() {
     }
 
     ClosePort(openedPort);
+    SetSystemState("CALIBRATE-->MODE MENU");
     return;
 }
 
@@ -63,27 +66,11 @@ double* RegisterBlinks(char **buffer, int *count) {
         preciseSleep(0.1);
     }
 
-    printf("Got first blink, sleeping until next full minute\n");
-    SetOledMessage("Sleeping ...", 0, 0, true);
     TimeStampToBuffer(buffer, "Got first blink: ");
-
     // Get the current time with high precision
     clock_gettime(CLOCK_REALTIME, &currentTime);
-    long currentSeconds = currentTime.tv_sec % 60;
 
-    // Sleep if less than 10 seconds remain until the next minute
-    if (60 - currentSeconds < 10) {
-        preciseSleep(11);
-    }
-
-    // Wait until the next full minute
-    while (1) {
-        clock_gettime(CLOCK_REALTIME, &currentTime);
-        if ((currentTime.tv_sec % 60) == 0 && (currentTime.tv_nsec < 1e6)) {
-            break;
-        }
-        preciseSleep(0.0001);
-    }
+    WaitForNextMinute(currentTime);
 
     clock_gettime(CLOCK_REALTIME, &senderStartTime);
     TimeStampToBufferWithTime(buffer, "Sender start time: ", senderStartTime);

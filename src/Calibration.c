@@ -47,14 +47,14 @@
 
 void Calibrate()
 {
-    const char* saatjaOrVastuvotja = WaitForButtonAndSelectConfig("saatja", "vastuvotja", "END");
-    while (strcmp(saatjaOrVastuvotja, "END") != 0) {
-        if (strcmp(saatjaOrVastuvotja, "saatja") == 0) {
+    const char* saatjaOrVastuvotja = WaitForButtonAndSelectConfig("Blinker", "Receiver", "Return MAIN");
+    while (strcmp(saatjaOrVastuvotja, "Return MAIN") != 0) {
+        if (strcmp(saatjaOrVastuvotja, "Blinker") == 0) {
             ledBlinkingCalibration(BLINK_COUNT_CALIBRATION);
-        } else if (strcmp(saatjaOrVastuvotja, "vastuvotja") == 0) {
+        } else if (strcmp(saatjaOrVastuvotja, "Receiver") == 0) {
             CountBlinks();
         }
-        saatjaOrVastuvotja = WaitForButtonAndSelectConfig("saatja", "vastuvotja", "END");
+        saatjaOrVastuvotja = WaitForButtonAndSelectConfig("Blinker", "Receiver", "Return MAIN");
         preciseSleep(0.5);
     }
 

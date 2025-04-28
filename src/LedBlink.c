@@ -12,6 +12,7 @@
 
 void ledBlinkingCalibration(int blinkCount)
 {
+    SetSystemState("CALIBRATE-->BLINKER");
     struct port *openedPort = openPort(GPIO_LINE_MAIN_BLINK, "debug", false); // 'true' for output
 
     SetOledMessage("Calibration started", 0, 0, true);
@@ -41,6 +42,7 @@ void ledBlinkingCalibration(int blinkCount)
     
     // Clean up
     ClosePort(openedPort);
+    SetSystemState("CALIBRATE-->MODE MENU");
 }
 
 void ledBlinking20(struct args_port* args, char** buffer)
@@ -71,7 +73,7 @@ void ledBlinking20(struct args_port* args, char** buffer)
     
     for (int i = 0; i < BLINK_COUNT_MAIN_PROGRAM; i++)
     {
-        TimeStampToBufferWithTime(buffer, "Blink: ", blinkTimes[i]);
+        TimeStampToBufferWithTime(buffer, "BSELECT link: ", blinkTimes[i]);
     }
     
     // Clean up
