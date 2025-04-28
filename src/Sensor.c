@@ -71,9 +71,9 @@ double* RegisterBlinks(char **buffer, int *count) {
     clock_gettime(CLOCK_REALTIME, &currentTime);
 
     WaitForNextMinute(currentTime);
-
+    
     clock_gettime(CLOCK_REALTIME, &senderStartTime);
-    TimeStampToBufferWithTime(buffer, "Sender start time: ", senderStartTime);
+
     SetOledMessage("Waiting blinks ...", 0, 0, true);
 
     // Read the LED blinks and record timestamps
@@ -110,10 +110,8 @@ double* RegisterBlinks(char **buffer, int *count) {
         breakCounter = 0;
 
         // Log the timestamp and delay
-        TimeStampToBufferWithTime(buffer, "Seen at: ", timestamps[i]);
         sprintf(numberStr, "Delay: %.5f ms\n", delaysCalculated[i]);
-        SetOledMessage(numberStr, 0, 2, true);
-        append_to_buffer(buffer, numberStr);
+        SetOledMessage(numberStr, 0, 0, true);
 
         printf("Got %d\n", i + 1);
     }
@@ -121,6 +119,15 @@ double* RegisterBlinks(char **buffer, int *count) {
     printf("Got all data\n");
     *count = i;
 
+    TimeStampToBufferWithTime(buffer, "Sender start time: ", senderStartTime);
+
+    for (int j = 0; j < i; j++)
+    {
+        TimeStampToBufferWithTime(buffer, "Seen at: ", timestamps[j]);
+        sprintf(numberStr, "Delay: %.5f ms\n", delaysCalculated[j]);
+        append_to_buffer(buffer, numberStr);
+    }
+    
     // Clean up resources
     gpiod_line_release(openedPort->line);
     gpiod_chip_close(openedPort->chip);

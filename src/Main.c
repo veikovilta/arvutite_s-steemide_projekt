@@ -176,7 +176,7 @@ int main(void) {
             WaitForNextMinute(firstblink);
 
             SetOledMessage("Blinking...", 0, 0, true);
-            ledBlinking20(&ledBlinkPort, &buffer);
+            ledBlinkingMain(&ledBlinkPort, &buffer);
 
             SetOledMessage("FINISHED", 0, 2, true);
             preciseSleep(1);

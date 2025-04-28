@@ -15,7 +15,7 @@
 #define BLINK_COUNT_CALIBRATION 100
 #define BLINK_COUNT_MAIN_PROGRAM 10 
 
-void ledBlinking20(struct args_port* args, char** buffer);
+void ledBlinkingMain(struct args_port* args, char** buffer);
 //void* ledBlinkOnce(void* arg);
 struct timespec ledBlinkOnce(struct args_port *newPort, char** buffer);
 void ledBlinkingCalibration(int blinkCount);
