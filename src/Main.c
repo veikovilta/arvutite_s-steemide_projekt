@@ -75,47 +75,61 @@ int main(void) {
     append_to_buffer(&buffer, "Button thread created\n");
 
     const char *startState;
+    const char *blinkerOrReceiver;
+    
+    do
+    {
 
-    // Wait for user to select configuration
-    do {
-        SetSystemState("MAIN-->MAIN MENU");
-        startState = WaitForButtonAndSelectConfig("SHUTDOWN", "CALIBRATE", "START");
+        // Wait for user to select configuration
+        do {
+            SetSystemState("MAIN-->MAIN MENU");
+            startState = WaitForButtonAndSelectConfig("SHUTDOWN", "CALIBRATE", "START");
 
-        if (strcmp(startState, "SHUTDOWN") == 0) {
-            SetSystemState("MAIN-->SHUTDOWN");
-            free(buffer);
-            SetOledMessage("Shutting down...", 0, 0, true);
-            preciseSleep(1);
-            programRunning = 0;
+            if (strcmp(startState, "SHUTDOWN") == 0) {
+                SetSystemState("MAIN-->SHUTDOWN");
+                free(buffer);
+                SetOledMessage("Shutting down...", 0, 0, true);
+                preciseSleep(1);
+                programRunning = 0;
+                
+                pthread_cancel(buttonThread);
+                pthread_join(buttonThread, NULL);
             
-            pthread_cancel(buttonThread);
-            pthread_join(buttonThread, NULL);
-        
-            SetOledMessage(" ", 0, 0, true);
-            preciseSleep(0.5);
-            pthread_cancel(oledThread);
-            pthread_join(oledThread, NULL);        
+                SetOledMessage(" ", 0, 0, true);
+                preciseSleep(0.5);
+                pthread_cancel(oledThread);
+                pthread_join(oledThread, NULL);        
 
-            if (system("sudo shutdown -h now") != 0) {
-                perror("Failed to shutdown");
+                if (system("sudo shutdown -h now") != 0) {
+                    perror("Failed to shutdown");
+                }
+                return 1;
+            } else if (strcmp(startState, "START") == 0) {
+                
+                SetSystemState("MAIN");
+                SetOledMessage("STARTING...", 0, 0, true);
+                preciseSleep(1.5);
+
+            } else if (strcmp(startState, "CALIBRATE") == 0) {
+                
+                SetSystemState("CALIBRATE-->MODE MENU");
+                preciseSleep(1);
+                Calibrate();
             }
-            return 1;
-        } else if (strcmp(startState, "START") == 0) {
-            
-            SetSystemState("MAIN");
-            SetOledMessage("STARTING...", 0, 0, true);
-            preciseSleep(1.5);
 
-        } else if (strcmp(startState, "CALIBRATE") == 0) {
-            
-            SetSystemState("CALIBRATE-->MODE MENU");
-            preciseSleep(1);
-            Calibrate();
-        }
+        } while (strcmp("START", startState) != 0);
 
-    } while (strcmp("START", startState) != 0);
-
-    //##########################################################################
+        //##########################################################################
+        
+        SetSystemState("MAIN-->MODE MENU");
+        blinkerOrReceiver = WaitForButtonAndSelectConfig("Blinker", "Receiver", "Back");
+        
+    } while (strcmp("Blinker", blinkerOrReceiver) != 0 && strcmp("Receiver", blinkerOrReceiver) != 0);
+    
+    char message[50];
+    printf("You have chosen: %s\n", blinkerOrReceiver);
+    snprintf(message, sizeof(message), "Picked configuration: %s\n", blinkerOrReceiver);
+    append_to_buffer(&buffer, message);
 
     // Start chrony service for synchronization
     if (system("sudo systemctl start chrony") != 0) {
@@ -125,16 +139,7 @@ int main(void) {
             perror("Failed to restart");
         }
     }
-
-    //##########################################################################
-
-    SetSystemState("MAIN-->MODE MENU");
-    char message[50];
-    const char *blinkerOrReceiver = WaitForButtonAndSelectConfig("Blinker", "Receiver", "None");
-    printf("You have chosen: %s\n", blinkerOrReceiver);
-    snprintf(message, sizeof(message), "Picked configuration: %s\n", blinkerOrReceiver);
-    append_to_buffer(&buffer, message);
-
+    
     int runAgain = 0;
 
     do {
@@ -188,15 +193,7 @@ int main(void) {
             buttonPressed = 0;
             pthread_mutex_unlock(&buttonLock);
 
-            SetOledMessage("PRESS BTN TO END", 0, 0, false);
 
-            while (1) {
-                if (IsButtonPressed()) {
-                    printf("ENDED pressed\n");
-                    break;
-                }
-                preciseSleep(0.1);
-            }
         
         } else if (!strcmp(blinkerOrReceiver, "Receiver")) {
 
@@ -230,21 +227,22 @@ int main(void) {
 
             AddSystemOffsetToBuffer(&buffer);
             TimeStampToBuffer(&buffer, "End: ");
-
-            SetOledMessage("PRESS BTN TO END", 0, 0, false);
-
-            while (1) {
-                if (IsButtonPressed()) {
-                    printf("ENDED pressed\n");
-                    break;
-                }
-                preciseSleep(0.1);
-            }
         }
 
         //##########################################################################
-        SetSystemState("MAIN-->END MENU");
+        
+        SetOledMessage("PRESS BUTTON TO END", 0, 0, false);
+
+        while (1) {
+            if (IsButtonPressed()) {
+                printf("ENDED pressed\n");
+                break;
+            }
+            preciseSleep(0.1);
+        }
+        
         write_log_to_file(buffer);
+        SetSystemState("MAIN-->END MENU");
 
         const char *endState = WaitForButtonAndSelectConfig("shutdown", "restart all", "run again");
 
