@@ -1,0 +1,32 @@
+Starting log in run again mode: 
+2025-04-21 10:54:49.832192738
+Picked configuration: vastuvotja
+Start synchronizing: 2025-04-21 10:54:49.832244644
+Offset: 0.0000018
+Synchronized
+Sensor program start: 2025-04-21 10:54:54.963488867
+Got first blink: 2025-04-21 10:55:44.006666698
+Sender start time: 2025-04-21 10:56:00.000076344
+Seen at: 2025-04-21 10:56:00.433430063
+Delay: 433.35366 ms
+Seen at: 2025-04-21 10:56:04.417085247
+Delay: 416.81888 ms
+Seen at: 2025-04-21 10:56:06.417003766
+Delay: 416.54758 ms
+Seen at: 2025-04-21 10:56:08.417867070
+Delay: 417.22089 ms
+Seen at: 2025-04-21 10:56:10.423265295
+Delay: 422.42892 ms
+Seen at: 2025-04-21 10:56:12.424807044
+Delay: 423.78078 ms
+Seen at: 2025-04-21 10:56:14.408188284
+Delay: 406.97205 ms
+Seen at: 2025-04-21 10:56:16.408884170
+Delay: 407.47799 ms
+Seen at: 2025-04-21 10:56:18.414967831
+Delay: 413.37148 ms
+Sensor stopped due to no blinking after 4sec: 2025-04-21 10:56:23.019590458
+Average: 417.552 ms
+Sensor finished: 2025-04-21 10:56:25.019903102
+Clock offset: 0.0000015
+End: 2025-04-21 10:56:25.130118623

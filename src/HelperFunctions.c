@@ -405,32 +405,89 @@ int ChronySync(char** buffer)
     return 0;
 }
 
-void WaitForNextMinuteBlinker(struct timespec firstblink) {
-    struct timespec currentTime;
-
-    // Print checking status
-    printf("Checking if it's less than 10 sec to the next full minute\n");
-    //fflush(stdout);
+void WaitForNextMinute(struct timespec firstblink) {
     
-    // Calculate if within 10 seconds of the next full minute
-    if (60 - (firstblink.tv_sec % 60) <= 10) {
-        preciseSleep(11); // Sleep for 11 seconds
+    time_t rounded_time = firstblink.tv_sec;
+
+    int seconds_past_minute = rounded_time % 60;
+
+    if (seconds_past_minute >= 50) {
+        // If within last 10 seconds of the minute → skip next minute
+        rounded_time += (60 - seconds_past_minute) + 60;
+    } else {
+        // Just go to the next minute
+        rounded_time += (60 - seconds_past_minute);
     }
 
-    printf("Waiting for the next minute\n");
+    struct tm *rounded_tm = localtime(&rounded_time);
+
+    char awakeBuffer[100];
+    strftime(awakeBuffer, sizeof(awakeBuffer), "START AT %H:%M", rounded_tm);
+    struct timespec currentTime;
+    int prevSecondsLeft = -1;
+    int bufferSize = 16;
+    char buffer[bufferSize];
+    
+    SetOledMessage(awakeBuffer, 0, 0, true);
+    preciseSleep(0.5);
+
+    // Print checking status
+    //printf("Checking if it's less than 10 sec to the next full minute\n");
+    //fflush(stdout);
+
+    // Calculate if within 10 seconds of the next full minute
+    if (60 - (firstblink.tv_sec % 60) <= 10) {
+        //preciseSleep(11); // Sleep for 11 seconds
+        while (1) {
+            clock_gettime(CLOCK_REALTIME, &currentTime);
+    
+            int secondsLeft = 60 - (currentTime.tv_sec % 60);
+    
+            if (secondsLeft == 60 && currentTime.tv_nsec < 1e6) {
+                preciseSleep(0.01); // Sleep for 0.5 seconds
+                break;
+            }
+    
+            // Only update the buffer when seconds left changes
+            if (secondsLeft != prevSecondsLeft) {
+                // Format: "Sec left: <seconds>"
+                // Assumes bufferSize >= 16
+                snprintf(buffer, bufferSize, "Sec left: %2ds", secondsLeft + 60);
+                prevSecondsLeft = secondsLeft;
+                SetOledMessage(buffer, 0, 2, false);
+            }
+    
+            preciseSleep(0.0001);  // Sleep 100 microseconds
+        }
+    }
+
+    //printf("Waiting for the next minute\n");
     //fflush(stdout);
 
     // Loop until the next full minute
+
     while (1) {
         clock_gettime(CLOCK_REALTIME, &currentTime);
 
-        // Break if the seconds are exactly at the start of a minute
-        if ((currentTime.tv_sec % 60) == 0 && currentTime.tv_nsec < 1e6) {
+        int secondsLeft = 60 - (currentTime.tv_sec % 60);
+
+        if (secondsLeft == 60 && currentTime.tv_nsec < 1e6) {
             break;
         }
 
-        preciseSleep(0.0001); // Sleep a short time before rechecking
+        // Only update the buffer when seconds left changes
+        if (secondsLeft != prevSecondsLeft) {
+            // Format: "Sec left: <seconds>"
+            // Assumes bufferSize >= 16
+            snprintf(buffer, bufferSize, "Sec left: %2ds", secondsLeft);
+            prevSecondsLeft = secondsLeft;
+            SetOledMessage(buffer, 0, 2, false);
+        }
+
+        preciseSleep(0.0001);  // Sleep 100 microseconds
     }
+
+    return;
 }
 
 const char* WaitForButtonAndSelectConfig(const char* state1Value,
@@ -499,3 +556,4 @@ int IsButtonPressed(void)
 	pthread_mutex_unlock(&buttonLock);
 	return pressed;
 }
+

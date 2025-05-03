@@ -44,6 +44,7 @@ struct oled {
 
 extern struct oled oled;
 
+extern char systemState[OLED_BUFFER_SIZE];
 
 // Function prototypes
 int i2cInit(const char *device, int addr);
@@ -56,5 +57,6 @@ void oledWriteChar(int i2cHandle, char ch);
 void oledWriteText(int i2cHandle, int x, int y, const char *text);
 void* oled_thread(void* arg); 
 void SetOledMessage(const char* message, int x, int y, bool clean);
+void SetSystemState(const char* newState);
 
 #endif

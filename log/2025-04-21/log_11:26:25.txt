@@ -1,0 +1,6 @@
+Start: 2025-04-21 11:25:54.635461068
+Button thread created
+Picked configuration: None
+Start synchronizing: 2025-04-21 11:26:19.920960956
+Offset: 0.0000062
+Synchronized

@@ -20,8 +20,7 @@
 int main(void) {
     //##########################################################################
     ShowReady(0);
-
-    printf("Program started\n");
+    printf("Program started\n");	
     preciseSleep(1);
 
     // Initialize button lock mutex
@@ -76,43 +75,61 @@ int main(void) {
     append_to_buffer(&buffer, "Button thread created\n");
 
     const char *startState;
+    const char *blinkerOrReceiver;
+    
+    do
+    {
 
-    // Wait for user to select configuration
-    do {
-        startState = WaitForButtonAndSelectConfig("SHUTDOWN", "CALIBRATE", "START");
+        // Wait for user to select configuration
+        do {
+            SetSystemState("MAIN-->MAIN MENU");
+            startState = WaitForButtonAndSelectConfig("SHUTDOWN", "CALIBRATE", "START");
 
-        if (strcmp(startState, "SHUTDOWN") == 0) {
-            free(buffer);
-            SetOledMessage("Shutting down...", 0, 0, true);
-            preciseSleep(1);
-            programRunning = 0;
+            if (strcmp(startState, "SHUTDOWN") == 0) {
+                SetSystemState("MAIN-->SHUTDOWN");
+                free(buffer);
+                SetOledMessage("Shutting down...", 0, 0, true);
+                preciseSleep(1);
+                programRunning = 0;
+                
+                pthread_cancel(buttonThread);
+                pthread_join(buttonThread, NULL);
             
-            pthread_cancel(buttonThread);
-            pthread_join(buttonThread, NULL);
-        
-            SetOledMessage(" ", 0, 0, true);
-            preciseSleep(0.5);
-            pthread_cancel(oledThread);
-            pthread_join(oledThread, NULL);        
+                SetOledMessage(" ", 0, 0, true);
+                preciseSleep(0.5);
+                pthread_cancel(oledThread);
+                pthread_join(oledThread, NULL);        
 
-            if (system("sudo shutdown -h now") != 0) {
-                perror("Failed to shutdown");
+                if (system("sudo shutdown -h now") != 0) {
+                    perror("Failed to shutdown");
+                }
+                return 1;
+            } else if (strcmp(startState, "START") == 0) {
+                
+                SetSystemState("MAIN");
+                SetOledMessage("STARTING...", 0, 0, true);
+                preciseSleep(1.5);
+
+            } else if (strcmp(startState, "CALIBRATE") == 0) {
+                
+                SetSystemState("CALIBRATE-->MODE MENU");
+                preciseSleep(1);
+                Calibrate();
             }
-            return 1;
-        } else if (strcmp(startState, "START") == 0) {
-            
-            SetOledMessage("STARTING...", 0, 0, true);
-            preciseSleep(1.5);
 
-        } else if (strcmp(startState, "CALIBRATE") == 0) {
-            
-            preciseSleep(1);
-            Calibrate();
-        }
+        } while (strcmp("START", startState) != 0);
 
-    } while (strcmp("START", startState) != 0);
-
-    //##########################################################################
+        //##########################################################################
+        
+        SetSystemState("MAIN-->MODE MENU");
+        blinkerOrReceiver = WaitForButtonAndSelectConfig("Blinker", "Receiver", "Back");
+        
+    } while (strcmp("Blinker", blinkerOrReceiver) != 0 && strcmp("Receiver", blinkerOrReceiver) != 0);
+    
+    char message[50];
+    printf("You have chosen: %s\n", blinkerOrReceiver);
+    snprintf(message, sizeof(message), "Picked configuration: %s\n", blinkerOrReceiver);
+    append_to_buffer(&buffer, message);
 
     // Start chrony service for synchronization
     if (system("sudo systemctl start chrony") != 0) {
@@ -122,15 +139,7 @@ int main(void) {
             perror("Failed to restart");
         }
     }
-
-    //##########################################################################
-
-    char message[50];
-    const char *saatjaOrVastuvotja = WaitForButtonAndSelectConfig("saatja", "vastuvotja", "None");
-    printf("You have chosen: %s\n", saatjaOrVastuvotja);
-    snprintf(message, sizeof(message), "Picked configuration: %s\n", saatjaOrVastuvotja);
-    append_to_buffer(&buffer, message);
-
+    
     int runAgain = 0;
 
     do {
@@ -144,6 +153,7 @@ int main(void) {
         printf("Synchronizing\n");
         TimeStampToBuffer(&buffer, "Start synchronizing: ");
 
+        SetSystemState("MAIN");
         int synced = ChronySync(&buffer);
         if (!synced) {
             printf("Synchronized\n");
@@ -153,12 +163,13 @@ int main(void) {
 
         //##########################################################################
 
-        if (!strcmp(saatjaOrVastuvotja, "saatja")) {
-
-            printf("Starting: SAATJA\n");
-            SetOledMessage("Starting Saatja", 0, 0, true);
-
-            TimeStampToBuffer(&buffer, "Blinking program start: ");
+        if (!strcmp(blinkerOrReceiver, "Blinker")) {
+            
+            SetSystemState("MAIN-->BLINKER");
+            printf("Starting: BLINKER\n");
+            SetOledMessage("Starting Blinker", 0, 0, true);
+            preciseSleep(0.5);
+            TimeStampToBuffer(&buffer, "Blinker program start: ");
 
             struct args_port ledBlinkPort;
             ledBlinkPort.portPin = GPIO_LINE_MAIN_BLINK;
@@ -167,19 +178,10 @@ int main(void) {
 
             struct timespec firstblink = ledBlinkOnce(&ledBlinkPort, &buffer);
 
-    
-            SetOledMessage("Next min blink", 0, 0, true);
-            preciseSleep(0.5);
-            SetOledMessage("sleeping...", 0, 2, false);
-
-            printf("LED blink time: %ld seconds and %ld nanoseconds\n",
-                   (long)firstblink.tv_sec, (long)firstblink.tv_nsec);
-            fflush(stdout);
-
-            WaitForNextMinuteBlinker(firstblink);
+            WaitForNextMinute(firstblink);
 
             SetOledMessage("Blinking...", 0, 0, true);
-            ledBlinking20(&ledBlinkPort, &buffer);
+            ledBlinkingMain(&ledBlinkPort, &buffer);
 
             SetOledMessage("FINISHED", 0, 2, true);
             preciseSleep(1);
@@ -191,20 +193,16 @@ int main(void) {
             buttonPressed = 0;
             pthread_mutex_unlock(&buttonLock);
 
-            SetOledMessage("PRESS BTN TO END", 0, 0, false);
 
-            while (1) {
-                if (IsButtonPressed()) {
-                    printf("ENDED pressed\n");
-                    break;
-                }
-                preciseSleep(0.1);
-            }
         
-        } else if (!strcmp(saatjaOrVastuvotja, "vastuvotja")) {
+        } else if (!strcmp(blinkerOrReceiver, "Receiver")) {
 
-            TimeStampToBuffer(&buffer, "Sensor program start: ");
-            SetOledMessage("Starting VASTUVOTJA", 0, 0, true);
+            SetSystemState("MAIN-->RECEIVER");
+
+            TimeStampToBuffer(&buffer, "RECEIVER program start: ");
+            SetOledMessage("Starting RECEIVER", 0, 0, true);
+            preciseSleep(0.5);
+            SetOledMessage("Waiting sync blink...", 0, 2, false);
 
             int numOfValidCalculations = 0;
             double *delaysCalculated = RegisterBlinks(&buffer, &numOfValidCalculations);
@@ -221,7 +219,7 @@ int main(void) {
 
             SetOledMessage(averageDelayStr, 0, 2, true);
             preciseSleep(1);
-            TimeStampToBuffer(&buffer, "Sensor finished: ");
+            TimeStampToBuffer(&buffer, "Receiver finished: ");
         
             pthread_mutex_lock(&buttonLock);
             buttonPressed = 0;
@@ -229,29 +227,32 @@ int main(void) {
 
             AddSystemOffsetToBuffer(&buffer);
             TimeStampToBuffer(&buffer, "End: ");
-
-            SetOledMessage("PRESS BTN TO END", 0, 0, false);
-
-            while (1) {
-                if (IsButtonPressed()) {
-                    printf("ENDED pressed\n");
-                    break;
-                }
-                preciseSleep(0.1);
-            }
         }
 
         //##########################################################################
+        
+        SetOledMessage("PRESS BUTTON TO END", 0, 0, false);
 
+        while (1) {
+            if (IsButtonPressed()) {
+                printf("ENDED pressed\n");
+                break;
+            }
+            preciseSleep(0.1);
+        }
+        
         write_log_to_file(buffer);
+        SetSystemState("MAIN-->END MENU");
 
         const char *endState = WaitForButtonAndSelectConfig("shutdown", "restart all", "run again");
 
         if (strcmp(endState, "shutdown") == 0) {
+            SetSystemState("MAIN-->SHUTDOWN");
             runAgain = 0;
             free(buffer);
             break;
         } else if (strcmp(endState, "restart all") == 0) {
+            SetSystemState("MAIN-->RESTART");
             SetOledMessage("Restarting program", 0, 2, true);
             free(buffer);
 
@@ -270,6 +271,7 @@ int main(void) {
             runAgain = 0;
             
         } else if (strcmp(endState, "run again") == 0) {
+            SetSystemState("MAIN");
             runAgain = 1;
 			// Free and reset the buffer in "run again" mode
 			if (runAgain) {
@@ -278,6 +280,7 @@ int main(void) {
 			}
             ShowReady(0);
         } else {
+            SetSystemState("MAIN-->SHUTDOWN");
             free(buffer);
             runAgain = 0;
         }

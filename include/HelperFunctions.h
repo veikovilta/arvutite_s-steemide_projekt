@@ -34,7 +34,7 @@ struct port* openPort(int portPin, char* debugName, bool inputOutput);
 void preciseSleep(double seconds);
 void* readButtonState_thread(void* arg);
 int CheckSync(char** buffer);
-void WaitForNextMinuteBlinker(struct timespec firstblink);
+void WaitForNextMinute(struct timespec firstblink);
 void ShowReady(int outputValue);
 int IsButtonPressed(void);
 const char* waitForButtonState(int port1, int port2, const char* state1Value, const char* state2Value); 

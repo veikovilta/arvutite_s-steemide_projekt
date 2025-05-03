@@ -12,6 +12,7 @@
 
 void ledBlinkingCalibration(int blinkCount)
 {
+    SetSystemState("CALIBRATE-->BLINKER");
     struct port *openedPort = openPort(GPIO_LINE_MAIN_BLINK, "debug", false); // 'true' for output
 
     SetOledMessage("Calibration started", 0, 0, true);
@@ -41,9 +42,10 @@ void ledBlinkingCalibration(int blinkCount)
     
     // Clean up
     ClosePort(openedPort);
+    SetSystemState("CALIBRATE-->MODE MENU");
 }
 
-void ledBlinking20(struct args_port* args, char** buffer)
+void ledBlinkingMain(struct args_port* args, char** buffer)
 {
     struct port *openedPort = openPort(args->portPin, args->debugName, false); // 'true' for output
 

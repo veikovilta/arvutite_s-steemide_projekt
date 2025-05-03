@@ -21,13 +21,22 @@ struct oled oled = {
     .clean = false
 };
 
+char systemState[OLED_BUFFER_SIZE] = "";
+
 void SetOledMessage(const char* message, int x, int y, bool clean)
 {
     pthread_mutex_lock(&global_mutex);
-    snprintf(oled.oledBuffer, OLED_BUFFER_SIZE, "%s", message);
+    strncpy(oled.oledBuffer, message, OLED_BUFFER_SIZE);
     oled.x = x;
     oled.y = y;
     oled.clean = clean; 
+    pthread_mutex_unlock(&global_mutex);
+}
+
+void SetSystemState(const char* newState)
+{
+    pthread_mutex_lock(&global_mutex);
+    strncpy(systemState, newState, OLED_BUFFER_SIZE);
     pthread_mutex_unlock(&global_mutex);
 }
 
@@ -56,10 +65,13 @@ void* oled_thread(void* arg)
 			{
 				if (i2cHandle){
 					close(i2cHandle);
+                    systemState[0] = '\0';
 				}
+                break;
 			}
 			
-            oledWriteText(i2cHandle, oled.x, oled.y, oled.oledBuffer); 
+            oledWriteText(i2cHandle, oled.x, oled.y, oled.oledBuffer);
+            oledWriteText(i2cHandle, 0, 7, systemState);  
             printf("%s\n", oled.oledBuffer);
 			oled.oledBuffer[0] = '\0'; 
 		}
