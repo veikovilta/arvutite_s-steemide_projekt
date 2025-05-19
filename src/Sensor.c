@@ -84,9 +84,9 @@ double* RegisterBlinks(char **buffer, int *count) {
             breakCounter++;
 
             // Stop if no blinking is detected for 4 seconds
-            if (breakCounter > 8000) {
+            if (breakCounter > 16000) {
                 breakCounter = -1;
-                SetOledMessage("Stopped, 4sec", 0, 0, true);
+                SetOledMessage("Stopped, 8sec", 0, 0, true);
                 TimeStampToBuffer(buffer, "Sensor stopped due to no blinking after 4sec: ");
                 preciseSleep(1);
                 break;

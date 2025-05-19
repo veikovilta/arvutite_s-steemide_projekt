@@ -1,7 +1,6 @@
 # Compiler
 CC = gcc
 
-#-Werror kasuta l]plikul asjal
 # Compiler flags for warnings, strict checks, and optimizations
 CFLAGS = -Wall -Wextra -pedantic -Wshadow -Wformat -Wconversion -g -O2 -pthread
 

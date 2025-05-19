@@ -96,7 +96,7 @@ int main(void) {
                 pthread_join(buttonThread, NULL);
             
                 SetOledMessage(" ", 0, 0, true);
-                preciseSleep(0.5);
+                preciseSleep(1);
                 pthread_cancel(oledThread);
                 pthread_join(oledThread, NULL);        
 
@@ -304,7 +304,7 @@ int main(void) {
     pthread_join(buttonThread, NULL);
 
     SetOledMessage(" ", 0, 0, true);
-    preciseSleep(0.5);
+    preciseSleep(1);
     pthread_cancel(oledThread);
     pthread_join(oledThread, NULL);
 

@@ -1,13 +1,3 @@
 {
-    "files.associations": {
-        "stdlib.h": "c",
-        "stdbool.h": "c",
-        "time.h": "c",
-        "display.h": "c",
-        "unistd.h": "c",
-        "files.h": "c"
-    },
-    "makefile.configureOnOpen": false,
-    "ros.distro": "humble",
-    "C_Cpp.errorSquiggles": "disabled"
+    "ros.distro": "humble"
 }
