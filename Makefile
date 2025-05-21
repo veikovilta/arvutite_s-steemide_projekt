@@ -2,7 +2,7 @@
 CC = gcc
 
 # Compiler flags for warnings, strict checks, and optimizations
-CFLAGS = -Wall -Wextra -pedantic -Wshadow -Wformat -Wconversion -g -O2 -pthread
+#CFLAGS = -Wall -Wextra -pedantic -Wshadow -Wformat -Wconversion -g -O2 -pthread
 
 # Target executable name
 TARGET = build/projekt

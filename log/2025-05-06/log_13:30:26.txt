@@ -1,0 +1,14 @@
+Start: 2025-05-06 12:52:50.867836358
+Button thread created
+Picked configuration: Receiver
+Start synchronizing: 2025-05-06 13:21:38.565050073
+Offset: 0.0000048
+Synchronized
+RECEIVER program start: 2025-05-06 13:21:43.579079540
+Got first blink: 2025-05-06 13:21:57.282994908
+Sensor stopped due to no blinking after 4sec: 2025-05-06 13:23:04.299564614
+Sender start time: 2025-05-06 13:23:00.000091619
+Average: 0.000 ms
+Receiver finished: 2025-05-06 13:23:06.299975196
+Clock offset: 0.0000330
+End: 2025-05-06 13:23:06.312145562

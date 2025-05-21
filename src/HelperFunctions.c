@@ -147,7 +147,9 @@ void* readButtonState_thread(void* arg) {
             {
                 //printf("Restarting...\n");
 				SetOledMessage("Restarting...", 0, 0, true);
-				preciseSleep(1); 
+				preciseSleep(2); 
+				SetOledMessage(" ", 0, 0, true);
+				preciseSleep(1);
                 if (system("sudo systemctl restart mooteseade.service") != 0) {
                     perror("Failed to restart");
                 }

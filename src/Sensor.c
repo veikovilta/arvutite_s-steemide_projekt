@@ -82,12 +82,12 @@ double* RegisterBlinks(char **buffer, int *count) {
         while (gpiod_line_get_value(openedPort->line) == 0) {
             preciseSleep(0.001);
             breakCounter++;
-
+			//printf("breakcounter: %d", breakCounter);
             // Stop if no blinking is detected for 4 seconds
             if (breakCounter > 16000) {
                 breakCounter = -1;
                 SetOledMessage("Stopped, 8sec", 0, 0, true);
-                TimeStampToBuffer(buffer, "Sensor stopped due to no blinking after 4sec: ");
+                TimeStampToBuffer(buffer, "Sensor stopped due to no blinking after 8sec: ");
                 preciseSleep(1);
                 break;
             }
@@ -98,6 +98,19 @@ double* RegisterBlinks(char **buffer, int *count) {
 
         // Wait for the GPIO pin to go LOW
         while (gpiod_line_get_value(openedPort->line) == 1) {
+
+			breakCounter++;
+			//printf("breakcounter: %d", breakCounter);
+			        // Stop if no blinking is detected for 4 seconds
+	        if (breakCounter > 27) {
+	            breakCounter = -1;
+	            SetOledMessage("Stopped, 8sec", 0, 0, true);
+	            TimeStampToBuffer(buffer, "Sensor stopped due to no blinking after 8sec: ");
+	            preciseSleep(1);
+	            break;
+	        }
+	    
+
             preciseSleep(0.3);
         }
 

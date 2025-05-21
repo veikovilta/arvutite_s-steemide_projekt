@@ -59,7 +59,7 @@ int main(void) {
         printf("Error with thread, restarting program\n");
     
         SetOledMessage(" ", 0, 0, true);
-        preciseSleep(0.5);
+        preciseSleep(1);
         pthread_cancel(oledThread);
         pthread_join(oledThread, NULL);
     
@@ -247,20 +247,20 @@ int main(void) {
         const char *endState = WaitForButtonAndSelectConfig("shutdown", "restart all", "run again");
 
         if (strcmp(endState, "shutdown") == 0) {
-            SetSystemState("MAIN-->SHUTDOWN");
             runAgain = 0;
             free(buffer);
             break;
         } else if (strcmp(endState, "restart all") == 0) {
-            SetSystemState("MAIN-->RESTART");
-            SetOledMessage("Restarting program", 0, 2, true);
+
+            SetOledMessage("Restarting... ", 0, 0, true);
+			preciseSleep(2);
             free(buffer);
 
             pthread_cancel(buttonThread);
             pthread_join(buttonThread, NULL);
         
             SetOledMessage(" ", 0, 0, true);
-            preciseSleep(0.5);
+            preciseSleep(1);
             pthread_cancel(oledThread);
             pthread_join(oledThread, NULL);
         
@@ -280,7 +280,7 @@ int main(void) {
 			}
             ShowReady(0);
         } else {
-            SetSystemState("MAIN-->SHUTDOWN");
+
             free(buffer);
             runAgain = 0;
         }
