@@ -44,8 +44,6 @@ void* oled_thread(void* arg)
 {
     int i2cHandle = i2cInit("/dev/i2c-1", OLED_I2C_ADDR);
 	if (i2cHandle < 0) return -1;
-
-	printf("hello here\n");
 	
 	oledInit(i2cHandle);
 
