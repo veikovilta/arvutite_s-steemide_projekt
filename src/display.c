@@ -50,7 +50,6 @@ void* oled_thread(void* arg)
 	while (programRunning)
 	{	
 		pthread_mutex_lock(&global_mutex);
-		//sprintf(oledBuffer, "tere123"); 
 		//printf(":%s\n", oledBuffer);
 		if(strcmp("", oled.oledBuffer) != 0)
 		{
