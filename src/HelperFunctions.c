@@ -301,7 +301,7 @@ int CheckSync(char** buffer)
     //SetOledMessage(message, 0, 2, false); 
     // Check synchronization status
     // piiriks 0.1 ms
-    if (systemOffset < 0.001 && systemOffset > -0.001) 
+    if (systemOffset < 0.0001 && systemOffset > -0.0001) 
     {
       	 return 0;
     }
